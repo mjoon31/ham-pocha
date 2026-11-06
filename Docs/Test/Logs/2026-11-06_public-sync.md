@@ -57,3 +57,23 @@ PR·보호 규칙 검사는 격리된 포트 모형이며 GitHub의 실제 계�
 - 실제 31개 원본 추출 최초 검사: **FAIL**. 일반 HTTPS의 프로토콜 구분자를 Windows 드라이브로 오인해 중단했다. 드라이브 문자 앞 경계 검사를 추가하고 일반/코드 표기 외부 URL 보존을 회귀 검사에 반영했다. 재실행 결과를 아래에 추가한다.
 - 수정 후 **20/20 PASS** 재확인. 실제 원본 **31개 추출 검사 PASS**, 민감 위치/제외 링크 처리가 필요한 21개를 기계적으로 처리하고 오류 0개를 확인했다. 이는 별도 서사 재작성이나 기여/검증 결과 변경이 아니다.
 - 실제 prepare: **PASS**. 변경 22개 파일·원본 커밋 2개 그룹과 원본 31개 초기 허용 후보를 검사하고 Public 검토 사본을 자동 생성했다. Public은 gitignore로 Git 추적 대상에서 빠진다. 별도 공개 메시지 입력 없음.
+
+## 회차 3 — 승인된 실제 commit·Push
+
+| 검사 | 실제 결과 | 상태 |
+|---|---|---|
+| 승인 계획 commit | 로컬 dev에 e77108d·76aa9f8 생성. 현재 dev, staging 비어 있음 | PASS |
+| 원본 승인 이력 | cli check로 승인 JSON 1개와 실제 원본 메시지/추출 일치 확인 | PASS |
+| 비공개 dev Push | 현재 Git PAT에 workflow scope가 없어 GitHub 원격이 workflow 파일 업로드 거부 | FAIL |
+| 원격 dev 확인 | 연결 GitHub 도구로 기존 5542d4a 유지 확인. 로컬 두 커밋은 보존됨 | PASS |
+| Actions·공개 dev·공개 PR/main | Push 거부로 실행되지 않음. Git 권한 및 PUBLIC_SYNC_TOKEN 설정 후 재개 | NOT RUN |
+
+인증값은 출력·기록하지 않았다. Git용 workflow 업로드 권한과 공개 자동화용 Secret은 서로 다른 용도다. 같은 두 커밋을 재생성하지 않고 인증 보완 후 Push만 재시도한다.
+
+## 회차 4 — 실제 Actions와 주소 오류 회귀
+
+- 개발자 Push: PASS, dev 76aa9f8. 실제 실행은 Public Sync #1 (비공개 링크).
+- GitHub-hosted Ubuntu: 격리 테스트 20/20 PASS, Mirror 단계 FAIL(저장소 메타데이터 GET 404). PUBLIC_SYNC_TOKEN과 GITHUB_TOKEN은 마스킹된 값으로 전달됐다.
+- 연결 도구로 저장소 끝 슬래시 주소의 HTTP 404 재현. 빈 route 주소 생성 결함을 AI가 수정하고 metadata() 정확한 URL 회귀 검사를 추가했다.
+- 수정 후 Windows 로컬 격리 테스트 **21/21 PASS**, 실패 0. 실제 수정 버전의 Actions·공개 dev 반영·PR/main은 **NOT RUN**.
+- 변경 대상: Tools/PublicSync/cli.mjs·sync.test.mjs, 같은 IR/테스트 로그. 새 공개 파일·범위·권한 확대 없음. 원본 후속 커밋 승인 뒤 Push 및 원격 재검증한다.

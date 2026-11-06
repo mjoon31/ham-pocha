@@ -1,7 +1,8 @@
 {
   "version": 1,
   "applied": [
-    "a7bac331-fa06-4738-b283-2450d9b65723"
+    "a7bac331-fa06-4738-b283-2450d9b65723",
+    "f1a803b2-ecec-4397-8735-1d9594f42886"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
@@ -13,7 +14,7 @@
     "Docs/Issue_Records/Records/IR-20261105-002_mobile-concept-research.md": "472cda24f3744cdb0aae6654be1abade5d219348",
     "Docs/Issue_Records/Records/IR-20261106-001_project-rename.md": "9d9946b2d21919e38f34a2d995717888804c6848",
     "Docs/Issue_Records/Records/IR-20261106-002_branch-policy.md": "aa54929494862e6a5c14e34a839749bb144e7a5b",
-    "Docs/Issue_Records/Records/IR-20261106-003_public-sync.md": "e5e7cc6cdc9e57dc3c37627b4838579f919460dc",
+    "Docs/Issue_Records/Records/IR-20261106-003_public-sync.md": "c59bdab42c06b65c74d28563efa28c529ac9943d",
     "Docs/README.md": "7d0d3cfc3d0f1f2bc792a1f14750c762a11422e2",
     "Docs/Research/Competitor_Comparison.md": "25668d2d158644efc250138e8274e3ab66cc34cf",
     "Docs/Research/Concept_Comparison.md": "2cc56d4ee22e79e1faa706232ddccd746e11df93",
@@ -25,7 +26,7 @@
     "Docs/Research/User_Feedback.md": "17a01ccffc4581332eaee30dd09174489fd82db6",
     "Docs/Test/Android_Test_Plan.md": "93d1bfaf6db90d119cba57786a1afc99b7ceba07",
     "Docs/Test/Logs/2026-11-05_documentation.md": "8d0181e16530d9475238b842a0a45d75a3d7b2e4",
-    "Docs/Test/Logs/2026-11-06_public-sync.md": "df18a9c600e276aeb03c0e87cec437449dcb3873",
+    "Docs/Test/Logs/2026-11-06_public-sync.md": "df99b7c8b0878fdbd93ce4b0779a9458f6da112f",
     "Docs/Test/Logs/README.md": "40912a396671f3e5407d307b07f8cf44f45183e3",
     "Docs/Test/Performance_Log_Template.md": "40ed2f6cbabe001b2ce029a57076fd7b7a9a0bcd",
     "Docs/Test/Playtest_Template.md": "0f816485679dcc60616859b6f97aaae8450840f3",

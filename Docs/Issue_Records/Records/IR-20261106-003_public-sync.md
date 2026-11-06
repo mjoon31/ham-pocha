@@ -121,3 +121,21 @@
 - AI 수정: 빈 route는 /repos/owner/repo로, 하위 route는 /repos/owner/repo/route로 생성하도록 변경. 실제 metadata 메서드의 정확한 요청 URL 회귀 검사 추가. 기존 승인/제외/가림/부모·브랜치 보호 로직은 유지했다.
 - 재검증: 로컬 21/21 PASS. 실제 수정 버전의 Actions·공개 전송은 아직 NOT RUN. 공개 dev는 기존 337ae407 상태로, 이 실패 실행에서 공개 branch 반영은 일어나지 않았다.
 - 후속 원본 커밋안: fix(workflow): [ai] 저장소 메타데이터 조회 주소 수정. 코드·회귀 검사와 이 실행 결과/테스트 기록을 한 목적 단위로 연결한다. 새 공개 범위 추가 없음. 후속 commit/push 승인과 원격 재검증 대기.
+
+## 7. 회차 5 — 주소 수정 승인·Push와 공개 쓰기 권한 거부
+
+- 개발자가 직전 수정 커밋안을 명시 승인했다. AI가 승인 계획으로 b6ebf4fcdd4bb5b6a2877805974259799f7e560a를 dev에 commit/push했다(PASS). 새 공개 범위·권한을 추가하지 않았다.
+- Public Sync #2 (비공개 링크): 원격 격리 검사 PASS. 저장소 metadata 조회 404는 해결되어 다음 단계로 진행됐다.
+- 실제 공개 전송 FAIL: 공개 저장소 POST git/blobs가 HTTP 403으로 거부됐다. 현재 Secret의 공개 저장소 Contents write 권한/선택 저장소/실제 등록 토큰 일치 여부를 확인해야 한다. 토큰 값은 조회하거나 로그에 출력하지 않았다.
+- 이 실행에서도 공개 dev는 기존 337ae407 상태다. 공개 branch 신규 commit은 없으며 비공개 main/공개 main 병합도 하지 않았다.
+- 다음: PUBLIC_SYNC_TOKEN에 공개 ham-pocha 하나의 Contents/PR write가 허용된 토큰이 저장됐는지 개발자가 확인·갱신. 같은 Actions 실행을 재실행하고 실제 공개 파일·commit을 검증한다. 이 실행 결과 기록은 로컬 갱신이며 추가 commit은 하지 않았다.
+
+## 8. 회차 6 — 권한 보완 후 실제 공개 dev 동기화 성공
+
+- 개발자가 토큰 설정 보완 완료를 알렸다. AI가 기존 Public Sync #2의 실패 작업을 재실행했다. 토큰 값은 조회하지 않았다.
+- 실제 실행 attempt 2 (비공개 링크): **SUCCESS**. 원본 source dev는 b6ebf4f이며 기존 승인 자료를 공개 dev에 반영했다.
+- 실제 공개 commit: 9a99d7bfb40e660a4292e76e92848578d47c116b(원본 docs/workflow), 85828cd1fdd277129e73e187986bbac9b41686c6(원본 fix/workflow). 내부 자동화 파일만 포함한 원본 chore commit은 공개 파일 변화가 없어 생략했다. 원본 Git 객체를 push하지 않았다.
+- AI 검증 PASS: 승인된 원본 commit에서 직접 계산한 31개 파일의 가림 후 blob과 공개 tree가 전부 일치(불일치 0). 공개 commit 두 개의 전체 제목·본문이 자동 가림 후 원본 메시지와 일치. Assets·Tools·AGENTS·skills·상세 지침 제외 확인.
+- 공개 main은 기존 337ae407로 유지. 비공개/공개 main 병합·릴리스는 수행하지 않았다. 실제 PR/main 경로 검증은 NOT RUN이며 개발자가 비공개 PR을 검토·병합할 때 확인한다.
+- 로컬 공개 폴더는 dev·clean 확인 뒤 원격 85828cd까지 fast-forward pull했다. 직접 파일 편집·개발·커밋은 하지 않았다.
+- 이번 성공/이전 실패의 후속 기록은 비공개 원본의 이 IR·테스트 로그에 로컬 갱신했다. 추가 기록 commit은 아직 하지 않았으며 기존 승인 commit/공개 결과를 임의 재작성하지 않았다.

@@ -77,3 +77,21 @@ PR·보호 규칙 검사는 격리된 포트 모형이며 GitHub의 실제 계�
 - 연결 도구로 저장소 끝 슬래시 주소의 HTTP 404 재현. 빈 route 주소 생성 결함을 AI가 수정하고 metadata() 정확한 URL 회귀 검사를 추가했다.
 - 수정 후 Windows 로컬 격리 테스트 **21/21 PASS**, 실패 0. 실제 수정 버전의 Actions·공개 dev 반영·PR/main은 **NOT RUN**.
 - 변경 대상: Tools/PublicSync/cli.mjs·sync.test.mjs, 같은 IR/테스트 로그. 새 공개 파일·범위·권한 확대 없음. 원본 후속 커밋 승인 뒤 Push 및 원격 재검증한다.
+
+## 회차 5 — 수정 Push 후 실제 권한 검증
+
+- 승인된 수정 b6ebf4f의 비공개 dev commit/push: PASS.
+- Public Sync #2 (비공개 링크) 격리 검사: PASS. metadata URL 404 해결 확인.
+- 실제 공개 쓰기: FAIL, POST git/blobs HTTP 403. Secret의 공개 저장소 Contents write 권한·선택 저장소·토큰 일치 확인 필요. 토큰 값은 열람/출력하지 않음.
+- 공개 dev: 기존 337ae407 유지. 실제 공개 branch 신규 commit 없음. 공개 전송 전체 성공·PR/main 검증은 계속 NOT RUN이며, 권한 보완 후 같은 실행으로 재검증한다.
+
+## 회차 6 — 실제 공개 dev 검증
+
+- 개발자 권한 보완 후 Public Sync #2 attempt 2 (비공개 링크): **PASS / SUCCESS**.
+- 실제 공개 commit: 9a99d7b·85828cd. 승인 자료 31개와 자동화 상태 파일 반영. 기존 README·gitignore 보존.
+- 원본 HEAD b6ebf4f에서 계산한 31개 가림 후 blob 대 공개 tree: **PASS**, 불일치 0개.
+- 공개 두 commit의 전체 메시지 대 자동 가림한 원본 메시지: **PASS**.
+- 공개 Assets·Tools·AGENTS·skills·Docs 상세 지침 제외: **PASS**.
+- 공개 main 기존 337ae407 보존: **PASS**. 실제 비공개/공개 PR·main 병합: **NOT RUN**, 개발자 원본 PR 검토·병합 이후 확인.
+- 로컬 공개 dev의 원격 결과 fast-forward 갱신: **PASS**, 직접 개발/커밋 없음.
+- 성공한 검사 뒤 추가 재실행은 하지 않았다. 중복/삭제/PR 보호는 기존 격리 검사 통과와 구분하며 실제 원격 삭제/PR 병합을 실행했다고 기록하지 않는다.

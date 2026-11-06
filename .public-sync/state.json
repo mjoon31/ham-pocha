@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "applied": [
+    "a7bac331-fa06-4738-b283-2450d9b65723"
+  ],
+  "managed": {
+    "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
+    "Docs/Architecture/PoC_Template.md": "93b94cb0c0f4ab77bf4d1cc220f27fe871b98d4b",
+    "Docs/Architecture/Technical_Baseline.md": "e7769e0a0f4c1291988cb33e321efe6b27198662",
+    "Docs/Issue_Records/Issue_Record_Template.md": "f1babc0e5081c06bfac79aafc6b34f333d938d5f",
+    "Docs/Issue_Records/README.md": "c2286523d0341003aea1878e70bd51431b04d6d8",
+    "Docs/Issue_Records/Records/IR-20261105-001_commit-workflow.md": "bea435993f842342e35076f134c6c58a3fab582f",
+    "Docs/Issue_Records/Records/IR-20261105-002_mobile-concept-research.md": "472cda24f3744cdb0aae6654be1abade5d219348",
+    "Docs/Issue_Records/Records/IR-20261106-001_project-rename.md": "9d9946b2d21919e38f34a2d995717888804c6848",
+    "Docs/Issue_Records/Records/IR-20261106-002_branch-policy.md": "aa54929494862e6a5c14e34a839749bb144e7a5b",
+    "Docs/Issue_Records/Records/IR-20261106-003_public-sync.md": "e5e7cc6cdc9e57dc3c37627b4838579f919460dc",
+    "Docs/README.md": "7d0d3cfc3d0f1f2bc792a1f14750c762a11422e2",
+    "Docs/Research/Competitor_Comparison.md": "25668d2d158644efc250138e8274e3ab66cc34cf",
+    "Docs/Research/Concept_Comparison.md": "2cc56d4ee22e79e1faa706232ddccd746e11df93",
+    "Docs/Research/Concept_Comparison_Round1.md": "56d49a71ef5a94cef58127a1d3a2047dc5749302",
+    "Docs/Research/Market_Research.md": "603ac3f8bc9c7f5631e8353496bfcbca243d7fbc",
+    "Docs/Research/Market_Research_Round1.md": "27cc066e2768d979c84450143dfb6f252feb4d8f",
+    "Docs/Research/Review_Source_Index.md": "8745bee4f5e9d6e824b8927e63e696fcd168710c",
+    "Docs/Research/Storage_And_Coop_Feasibility.md": "82e75be95a4d3dd714d371fd088171a4f463bb32",
+    "Docs/Research/User_Feedback.md": "17a01ccffc4581332eaee30dd09174489fd82db6",
+    "Docs/Test/Android_Test_Plan.md": "93d1bfaf6db90d119cba57786a1afc99b7ceba07",
+    "Docs/Test/Logs/2026-11-05_documentation.md": "8d0181e16530d9475238b842a0a45d75a3d7b2e4",
+    "Docs/Test/Logs/2026-11-06_public-sync.md": "df18a9c600e276aeb03c0e87cec437449dcb3873",
+    "Docs/Test/Logs/README.md": "40912a396671f3e5407d307b07f8cf44f45183e3",
+    "Docs/Test/Performance_Log_Template.md": "40ed2f6cbabe001b2ce029a57076fd7b7a9a0bcd",
+    "Docs/Test/Playtest_Template.md": "0f816485679dcc60616859b6f97aaae8450840f3",
+    "Docs/Test/Test_Log_Template.md": "52b3172b556ce742e4ee390ad857bfde259d7580",
+    "Docs/Troubleshooting/Cases/README.md": "a53b9199d0ab4a36f9f88107726f7204dfb08c93",
+    "Docs/Troubleshooting/Issue_Resolution_Template.md": "9959ed8bef282dd667757e809192cf26d1618d76",
+    "Docs/Workflow/Collaboration_Log.md": "acb276666dc283522554ea72aa29f599df5b576a",
+    "Docs/Workflow/Daily_Report_Template.md": "5f58a05ccfd71697b35ca657a2696706485c9f78",
+    "Docs/Workflow/Development_Flow.md": "4cc4aa1b945c8306047f2500da84bd876ad2cddd"
+  }
+}

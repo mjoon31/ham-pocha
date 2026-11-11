@@ -1,6 +1,6 @@
 # Android 검증 계획
 
-상태: 계획 양식. 게임 기능·테스트 기기·빌드가 미정이므로 모두 NOT RUN이다.
+상태: 실행계획. 2026-11-11 Galaxy S26 Ultra/Galaxy S22 지정,각30/60FPS모드비교. 빌드/측정치미확보·전항목NOT RUN.
 
 - F-ID / 빌드 버전·코드·APK 해시 / commit·dirty:
 - 기기·SoC·RAM·Android·해상도·주사율:
@@ -24,3 +24,15 @@
 적용되지 않는 항목은 N/A와 이유를 기록한다. 미정인 기대 조건은 실제 GDD/ADR로 구체화한 뒤 판정한다.
 
 성능 절차는 Mobile Performance Rules (공개 제외), 결과는 [Test Log](Test_Log_Template.md)·[성능 양식](Performance_Log_Template.md), 사용자 의견은 [Playtest](Playtest_Template.md)에 기록한다.
+
+## 지정 실기기 측정 매트릭스 — 2026-11-11
+
+| 기기 | 설정 | 검증 | 결과 |
+|---|---|---|---|
+| Galaxy S26 Ultra | 30FPS | 숲/세포차·최대손님·메뉴·야간·저장·30분연속플레이·발열·터치체감 | NOT RUN |
+| Galaxy S26 Ultra | 60FPS | 동일조건·프레임변동/p95/p99·해상도·주사율기록 | NOT RUN |
+| Galaxy S22 | 30FPS | 동일빌드/측정조건·후반프레임/발열 | NOT RUN |
+| Galaxy S22 | 60FPS | 동일조건·체감/안정성비교 | NOT RUN |
+
+30FPS안정유지와60FPS목표를검증한다. 성능설정의30/60표시는실제달성FPS가아니다. OS·기기상태·품질·충전·밝기·일반빌드/Profiler부하를기록한다.
+T-ANDROID-12:두기기로그인전환·마지막업로드복원·미업로드롤백경고·이전세션늦은쓰기차단/오프라인복귀. NOT RUN.

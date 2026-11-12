@@ -12,7 +12,7 @@
 |---|---|
 | `Rules/` | 조사 (공개 제외), 기획 (공개 제외), 기술 선택 (공개 제외), 폴더 (공개 제외), 코드 (공개 제외), 로그 (공개 제외), 테스트 (공개 제외), 모바일 성능 (공개 제외), 개발 기록 (공개 제외) |
 | `Research/` | 접근 진단 (공개 제외), [시장조사](Research/Market_Research.md), 한국 리뷰 20건 (공개 제외), [협동 3개·솔로 3개](Research/Concept_Comparison.md) |
-| `Planning/` | GDD (공개 제외), 콘텐츠·해금 (공개 제외), Cuisineer 참고 (공개 제외), MVP (공개 제외) |
+| `Planning/` | GDD (공개 제외), 콘텐츠·해금 (공개 제외), Cuisineer 참고 (공개 제외), MVP (공개 제외), 기본 햄스터 모델 (공개 제외) |
 | `Decisions/` | 게임 선정 (공개 제외), 결정 목록 (공개 제외) |
 | `Architecture/` | [기술 현황](Architecture/Technical_Baseline.md), [ADR 양식](Architecture/ADR_Template.md), [PoC 양식](Architecture/PoC_Template.md) |
 | `Git/` | GitHub 운영 (공개 제외), 커밋 (공개 제외), 비공개·공개 자동화 (공개 제외) |

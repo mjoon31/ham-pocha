@@ -1,27 +1,35 @@
-# 기술 기준선과 미선정 항목
+# 기술 기준선과 후속 검증
 
-확인일: 2026-11-05. 로컬 파일 기준이며 호환·실행 테스트 결과가 아니다.
+2026-11-12 로컬 파일·커밋·기존 검증 기록 기준. 현재 파일에 반영된 기술과 승인된 방향, 미실행 검증을 구분한다.
 
-| 항목 | 확인한 사실 | 근거 |
-|---|---|---|
-| Unity | 2022.3.62f3 | `ProjectSettings/ProjectVersion.txt` |
-| UI 패키지 | ugui 1.0.0 / TextMeshPro 3.0.7 설치 명세 | `Packages/manifest.json` |
-| 기타 명세 | Timeline 1.7.7, Visual Scripting 1.9.4, Development feature 1.0.1 등 | `Packages/manifest.json` |
-| 테스트 도구 | Test Framework 1.1.33 등이 의존성으로 기록됨 | `Packages/packages-lock.json` |
-| 버전 관리 설정 | Visible Meta Files, Force Text | `ProjectSettings/EditorSettings.asset` |
-| 초기 제품 정보 | DefaultCompany / Ham Pocha / 0.1 | `ProjectSettings/ProjectSettings.asset` |
+| 항목 | 현재 기준·근거 |
+|---|---|
+| Unity | 2022.3.62f3, ProjectSettings/ProjectVersion.txt |
+| 렌더링 | 개발자 결정: URP 카툰풍. Core/URP/Shader Graph14.0.12가 manifest/lock에 등록됨 |
+| 기본 파이프라인 | HamPochaURP (공개 제외), GraphicsSettings 참조 GUID 일치. 설정 커밋942b8ab |
+| 기본 플레이어 | HamsterLowPolyToon (공개 제외). 원본/다른 변형 보관, 아웃라인 적용 보류. 커밋61338f1 |
+| 셰이더 의존 | Assets/00_ThirdParty/Toon Shaders Pro, 모델 문서 (공개 제외) 참조. 원본/meta는 fc6e640에서 비공개 등록. 공개 제외 유지, 등록을 새 구매/권리 검수 완료로 해석하지 않음 |
+| UI | uGUI1.0.0 / TextMeshPro3.0.7 설치 명세. 구체 화면·책임 분리는 후속 설계 |
+| 에디터 연동 | Unity MCP v10.0.0 등록, 과거 환경 재해석/컴파일·재연결 검증 기록 존재 |
+| 버전 관리 | Visible Meta Files / Force Text. 비공개 서드파티 추적 허용·공개 제외 유지 |
+| 제품 | Ham Pocha / 0.1, 표시명 햄포차 (Ham Pocha) |
+| 플랫폼·입력 경험 | Android·가로화면·탐험 스틱/버튼·영업 터치 확정. 구체 입력 API 채택과 기기 테스트는 별도 |
+| 저장·수익 방향 | 로컬JSON+Google/Firebase 계정 저장·선택형 보상광고. 자체게임서버/추가유료재화/결제는 기본 범위 밖 |
+| 목표 기기 | Galaxy S26 Ultra/S22 각각30/60FPS 모드 비교. 안정30/목표60은 실측 전 목표 |
 
-## 결정 대기
+## 후속 결정·검증
 
-- 렌더링·입력 API·UI 사용 범위·씬/초기화·상태 관리·데이터·저장·오디오.
-- 싱글/멀티·서버/계정/DB·외부 SDK·광고/결제의 필요성.
-- 패키지명·방향·서명·스크립팅 백엔드·CPU 아키텍처·그래픽 API·SDK 지원 범위.
-- 목표 기기·프레임·메모리·발열 예산.
+- 입력 API·게임 상태/데이터 책임·씬 초기화·오디오·실제 저장/광고 SDK와 실패복구 상세.
+- 세션/Firestore 보안PoC, 이전 세션의 늦은 업로드 차단, 저장 원자성·오프라인 회복.
+- Android 식별자·서명·빌드 백엔드·CPU/그래픽 API·지원 범위와 실제 빌드.
+- 두 실기기의 프레임·메모리·발열·터치, URP/셰이더 모바일 호환·품질 예산.
 
-설정 파일에 기본 값이 있다는 이유로 지원 기기·배포 스펙·SDK 정책이 확정되었다고 해석하지 않는다. 최신 배포 요건은 실제 배포 결정 시 공식 자료로 확인한다.
+솔로/가로화면·URP·기본 모델·저장 및 광고 방향·지정 기기는 이미 결정되었으므로 전체를 미선정으로 되돌리지 않는다. 방향 확정이 실제 연동·보안·성능 검증 완료를 의미하지 않는다.
 
-## 아키텍처 산출물
+## 검증 근거와 범위
 
-GDD 요구표 → 구조 2안 비교 → [ADR](ADR_Template.md) → [PoC](PoC_Template.md) → 실제 결과 → 승인된 초기 구성 순으로 진행한다. 이번 문서 정비에서는 프로젝트 설정·패키지·코드를 변경하지 않는다.
+환경 검증 기록 (공개 제외)은 당시 캐시 기반 패키지 재해석·컴파일·MCP 상태의 근거다. 이후 URP 추가까지 재검증한 기록으로 소급하지 않는다. 모델 문서 (공개 제외)는 Editor 외형·참조 검증의 근거다. 이번 문서 작업에서는 Unity를 실행하지 않았으며 Play Mode·Android·실기기·계정/광고 PoC는 NOT RUN이다.
 
-2026-11-06 이름 변경: 표시명은 햄포차 (Ham Pocha), Unity productName은 Ham Pocha로 변경했다. 버전·회사·Android 식별자는 변경하지 않았으며 실행 검증은 하지 않았다.
+새 기술 결정은 요구→대안→[ADR](ADR_Template.md)→[PoC](PoC_Template.md)→실제 검증으로 연결한다. 현재 상태 (공개 제외), 진행 갱신 기록 (공개 제외).
+
+Test Framework 설치 명세: **1.1.33** (packages-lock 기준, 실행 결과 아님).

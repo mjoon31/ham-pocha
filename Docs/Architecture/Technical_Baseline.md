@@ -33,3 +33,14 @@
 새 기술 결정은 요구→대안→[ADR](ADR_Template.md)→[PoC](PoC_Template.md)→실제 검증으로 연결한다. 현재 상태 (공개 제외), 진행 갱신 기록 (공개 제외).
 
 Test Framework 설치 명세: **1.1.33** (packages-lock 기준, 실행 결과 아님).
+
+## 2026-11-13 프로토타입 구성 갱신
+
+Input System1.14.0이 현재 manifest/lock에 등록되었고 입력 설정·가상 조이스틱과 PlayerInputReader/PlayerMotor가 구성됐다. Main 공통 시스템과 Home/Village/Forest01~03의 추가 로드·캐시, GameSessionState·WorldClock·Fatigue·BusinessPacing, 손님 배정·주문/조리·HUD 코드 및 두 BusinessTiming SO를 확인했다. 이는 실제 파일 구성으로, 기존 “입력 API 전체 미선정” 안내를 현재 구현 상태로 보완한다. 최신 요구와의 차이 및 남은 기술 결정은 현재 상태 (공개 제외)의 대조표를 따른다.
+
+Assembly-CSharp 소스40개·컴파일 진행 아님·현재 Console error 조회0건을 Editor에서 확인했다. 이번 점검에서 컴파일/플레이/빌드/실기기를 실행하지 않았다. Fatigue는 프로세스 내 UTC 회복이며 종료 후 저장/복원, Google/Firebase, 광고 및 관련 보안 검증은 별도다. 코드·씬·패키지·설정은 이번 문서 작업에서 변경하지 않았다.
+
+
+### 최신 개발자 플레이 검수
+
+2026-11-13 개발자가 기본1배속으로3일 연속 탐험·영업·수면과 최신 수정사항 직접 플레이를 확인했다. 핵심 루프 PoC를 마무리하고 실개발로 전환하며 다음 P0는 최소 로컬 저장·복원이다. 앞의 미실행 표기는 최초 상태 점검 범위이고 이번 사용자 제공 검수와 구분한다. 최신 검수 기록 (공개 제외), GitHub #1 (비공개 링크), 다음 저장 작업 #2 (비공개 링크). Android·종료후저장·경제·클라우드/보안은 미완료다.

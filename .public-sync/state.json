@@ -9,14 +9,15 @@
     "22b441c1-1491-4ea5-856f-a2c4fd630c24",
     "0c16f2eb-646b-42da-9411-d8b160251ff9",
     "2f719f16-2ce4-4a0a-9ce9-a0b6edab956b",
-    "c612e85f-e897-4c68-95cc-a496b193971b"
+    "c612e85f-e897-4c68-95cc-a496b193971b",
+    "23bc241f-8886-46a7-9b1f-7ec30a542fd2"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
     "Docs/Architecture/PoC_Template.md": "93b94cb0c0f4ab77bf4d1cc220f27fe871b98d4b",
     "Docs/Architecture/Technical_Baseline.md": "7f24b2b29dcbeb5180c85fe32ff439d7b656e946",
     "Docs/Issue_Records/Issue_Record_Template.md": "f1babc0e5081c06bfac79aafc6b34f333d938d5f",
-    "Docs/Issue_Records/README.md": "98ff3dd3eb10807e55f86a6dcab7eff72c184fff",
+    "Docs/Issue_Records/README.md": "705518eba11cd184ccd0b64cce18c7e31160375c",
     "Docs/Issue_Records/Records/IR-20261105-001_commit-workflow.md": "bea435993f842342e35076f134c6c58a3fab582f",
     "Docs/Issue_Records/Records/IR-20261105-002_mobile-concept-research.md": "472cda24f3744cdb0aae6654be1abade5d219348",
     "Docs/Issue_Records/Records/IR-20261106-001_project-rename.md": "9d9946b2d21919e38f34a2d995717888804c6848",
@@ -38,9 +39,9 @@
     "Docs/Test/Performance_Log_Template.md": "40ed2f6cbabe001b2ce029a57076fd7b7a9a0bcd",
     "Docs/Test/Playtest_Template.md": "0f816485679dcc60616859b6f97aaae8450840f3",
     "Docs/Test/Test_Log_Template.md": "52b3172b556ce742e4ee390ad857bfde259d7580",
-    "Docs/Troubleshooting/Cases/README.md": "a53b9199d0ab4a36f9f88107726f7204dfb08c93",
+    "Docs/Troubleshooting/Cases/README.md": "eedc641d1c022d128bc75aaf0f1ddd3b120937d0",
     "Docs/Troubleshooting/Issue_Resolution_Template.md": "9959ed8bef282dd667757e809192cf26d1618d76",
-    "Docs/Workflow/Collaboration_Log.md": "bd058e37bc54321b3ad12f1bc78c1d5e1071c377",
+    "Docs/Workflow/Collaboration_Log.md": "1266f9dc1844f6f2ba8db3b8a7a36ad7b4065e3e",
     "Docs/Workflow/Daily_Report_Template.md": "5f58a05ccfd71697b35ca657a2696706485c9f78",
     "Docs/Workflow/Development_Flow.md": "4cc4aa1b945c8306047f2500da84bd876ad2cddd"
   }

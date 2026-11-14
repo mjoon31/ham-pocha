@@ -56,3 +56,8 @@
 
 
 - 2026-11-14 명명 후속: 개발자가 현재 스크립트처럼 짧고 직관적인 이름을 쓰도록 지시했다. AI가 HamPocha namespace·기존 코드 변경을 보존하며 코딩/진입 지침만 보완했다. 기존 명명 IR 회차2 (공개 제외). 실제 rename·Unity 재검증·commit/push 없음.
+
+
+- 2026-11-14 커밋 본문 후속: 개발자가 실제 마지막 커밋처럼 판단·개발자 직접 작업·AI 수행 분리를 요청했다. AI가 필수 본문과 Git/공개 규칙을 보완했다. [기존 커밋 규칙 IR 회차2](../Issue_Records/Records/IR-20261105-001_commit-workflow.md). 게임 변경·commit/push 없음.
+
+- 2026-11-14 공용 메모 후속: 개발자 지시로 AI가 메모의 판단·개발자 작업·AI 작업 필수 구분과 커밋 담당의 diff/IR 대조 규칙을 보완했다. [기존 커밋 규칙 IR 회차3](../Issue_Records/Records/IR-20261105-001_commit-workflow.md). 다른 대화 메모 수정·commit/push 없음.

@@ -13,14 +13,15 @@
     "23bc241f-8886-46a7-9b1f-7ec30a542fd2",
     "fc5d3fec-8747-4cf6-96a7-e1f0864482c7",
     "9d281671-4441-4096-8dc9-db1457d9052d",
-    "848c4856-79c2-487b-ab07-f3660d3339b0"
+    "848c4856-79c2-487b-ab07-f3660d3339b0",
+    "0a787189-405c-44e8-b16c-1bf39ff5307e"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
     "Docs/Architecture/PoC_Template.md": "93b94cb0c0f4ab77bf4d1cc220f27fe871b98d4b",
-    "Docs/Architecture/Technical_Baseline.md": "7f24b2b29dcbeb5180c85fe32ff439d7b656e946",
+    "Docs/Architecture/Technical_Baseline.md": "75baea9c49c3bd9744e4f9f343907e4e8ae510ca",
     "Docs/Issue_Records/Issue_Record_Template.md": "f1babc0e5081c06bfac79aafc6b34f333d938d5f",
-    "Docs/Issue_Records/README.md": "7e24bcc45f6c6059a4927e6e645d34843eb91547",
+    "Docs/Issue_Records/README.md": "3a4ab688a2d9e59228debc76cffdc03bcf2c99b6",
     "Docs/Issue_Records/Records/IR-20261105-001_commit-workflow.md": "959aa42b476a89da14bf1673e9196d130acf03ab",
     "Docs/Issue_Records/Records/IR-20261105-002_mobile-concept-research.md": "472cda24f3744cdb0aae6654be1abade5d219348",
     "Docs/Issue_Records/Records/IR-20261106-001_project-rename.md": "9d9946b2d21919e38f34a2d995717888804c6848",
@@ -44,7 +45,7 @@
     "Docs/Test/Test_Log_Template.md": "52b3172b556ce742e4ee390ad857bfde259d7580",
     "Docs/Troubleshooting/Cases/README.md": "eedc641d1c022d128bc75aaf0f1ddd3b120937d0",
     "Docs/Troubleshooting/Issue_Resolution_Template.md": "9959ed8bef282dd667757e809192cf26d1618d76",
-    "Docs/Workflow/Collaboration_Log.md": "d0aaea3a11d08f8a6a6a4938269b50caf45d3def",
+    "Docs/Workflow/Collaboration_Log.md": "87af602057b2722d6a50e4f27806549bb2261a7a",
     "Docs/Workflow/Daily_Report_Template.md": "5f58a05ccfd71697b35ca657a2696706485c9f78",
     "Docs/Workflow/Development_Flow.md": "4cc4aa1b945c8306047f2500da84bd876ad2cddd"
   }

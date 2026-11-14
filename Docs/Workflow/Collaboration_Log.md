@@ -62,3 +62,5 @@
 - 2026-11-14 커밋 본문 후속: 개발자가 실제 마지막 커밋처럼 판단·개발자 직접 작업·AI 수행 분리를 요청했다. AI가 필수 본문과 Git/공개 규칙을 보완했다. [기존 커밋 규칙 IR 회차2](../Issue_Records/Records/IR-20261105-001_commit-workflow.md). 게임 변경·commit/push 없음.
 
 - 2026-11-14 공용 메모 후속: 개발자 지시로 AI가 메모의 판단·개발자 작업·AI 작업 필수 구분과 커밋 담당의 diff/IR 대조 규칙을 보완했다. [기존 커밋 규칙 IR 회차3](../Issue_Records/Records/IR-20261105-001_commit-workflow.md). 다른 대화 메모 수정·commit/push 없음.
+
+- 2026-11-14 공개 범위 후속: 개발자가 폴더 구조·씬 연결 설명, 원본 연결 코드3개와 검수한 개발 이슈 공개 및 규칙 반영을 승인했다. AI는 기존 문서 전용 목록/이슈 전송 부재를 확인하고 개별 허용·검수 스냅샷·중복/수동변경 보호를 보완했다. [구조와 연결](../Architecture/Scene_Flow.md), [실제 경위](../Issue_Records/Records/IR-20261106-003_public-sync.md).

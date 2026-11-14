@@ -14,7 +14,8 @@
     "fc5d3fec-8747-4cf6-96a7-e1f0864482c7",
     "9d281671-4441-4096-8dc9-db1457d9052d",
     "848c4856-79c2-487b-ab07-f3660d3339b0",
-    "0a787189-405c-44e8-b16c-1bf39ff5307e"
+    "0a787189-405c-44e8-b16c-1bf39ff5307e",
+    "3d4fde64-8f88-47ec-a889-ad10b717ac9d"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
@@ -26,7 +27,7 @@
     "Docs/Issue_Records/Records/IR-20261105-002_mobile-concept-research.md": "472cda24f3744cdb0aae6654be1abade5d219348",
     "Docs/Issue_Records/Records/IR-20261106-001_project-rename.md": "9d9946b2d21919e38f34a2d995717888804c6848",
     "Docs/Issue_Records/Records/IR-20261106-002_branch-policy.md": "aa54929494862e6a5c14e34a839749bb144e7a5b",
-    "Docs/Issue_Records/Records/IR-20261106-003_public-sync.md": "0496bb715e9d315b7b13fa90e1db1c67b42f7912",
+    "Docs/Issue_Records/Records/IR-20261106-003_public-sync.md": "f104ef76f821a65358952f824cb74f56beedcce8",
     "Docs/README.md": "ea704a3c4ce823d47bcb46306e278dd36a9dfe9f",
     "Docs/Research/Competitor_Comparison.md": "25668d2d158644efc250138e8274e3ab66cc34cf",
     "Docs/Research/Concept_Comparison.md": "2cc56d4ee22e79e1faa706232ddccd746e11df93",
@@ -45,8 +46,13 @@
     "Docs/Test/Test_Log_Template.md": "52b3172b556ce742e4ee390ad857bfde259d7580",
     "Docs/Troubleshooting/Cases/README.md": "eedc641d1c022d128bc75aaf0f1ddd3b120937d0",
     "Docs/Troubleshooting/Issue_Resolution_Template.md": "9959ed8bef282dd667757e809192cf26d1618d76",
-    "Docs/Workflow/Collaboration_Log.md": "87af602057b2722d6a50e4f27806549bb2261a7a",
+    "Docs/Workflow/Collaboration_Log.md": "23129ea75c236bcc30e758af29b2525bb7e480bd",
     "Docs/Workflow/Daily_Report_Template.md": "5f58a05ccfd71697b35ca657a2696706485c9f78",
-    "Docs/Workflow/Development_Flow.md": "4cc4aa1b945c8306047f2500da84bd876ad2cddd"
+    "Docs/Workflow/Development_Flow.md": "4cc4aa1b945c8306047f2500da84bd876ad2cddd",
+    "Docs/Architecture/Scene_Flow.md": "5be8bfa58c8f6554230081e332f758b4203afd32",
+    "Docs/Rules/Project_Structure.md": "d1301bf1c0d4718af02e316754ce894e87873d1a",
+    "Source/Core/MainSceneLoader.cs": "8c09603704d8b420b59c516b586405cb947b792f",
+    "Source/Core/SceneRegion.cs": "36464a78deff4d80619962ae2263b4817ef23ce4",
+    "Source/UI/SceneTransitionFade.cs": "e5f45aa1d186e1997bd13faac3a0eb60be4f42ae"
   }
 }

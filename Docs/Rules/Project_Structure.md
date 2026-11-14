@@ -104,3 +104,6 @@ Assets/00_ThirdParty와 폴더 meta는 비공개 원본 저장소에서 추적�
 개발자는 이 폴더 구조와 [씬·공통 시스템 연결](../Architecture/Scene_Flow.md), MainSceneLoader·SceneRegion·SceneTransitionFade 원본 C#의 공개 추출을 승인했다. 이 문서만 Docs/Rules 경로의 개별 공개 예외이며 다른 내부 규칙은 계속 제외한다. 실제 전체 Unity 프로젝트의 에셋·씬·프리팹·설정·SDK를 공개한다는 뜻이 아니다.
 
 현재 Core에는 GameSave/CloudSave, Data에는 SaveData/SaveKey/LocalSave/CloudSession, UI에는 GoogleLogin/CloudSaveHud가 추가돼 있다. 이 이름과 연결 책임의 설명은 공개하되 저장·인증·세션 내부 구현은 공개 범위 밖이다. 상세 연결과 원본 코드 링크는 위 구조 문서에서 관리한다.
+
+
+2026-11-15 개발자 지시: 공개 파일은 별도 Source 디렉터리로 재배치하지 않고 원본 Assets 상대 경로에 둔다. Assets 전체 실제 하위 디렉터리는 공개하며, 공개 파일이 없는 말단 폴더는 내용이 빈 .gitkeep으로 보존한다. 이는 디렉터리 표시만 허용하며 핵심 코드·인증 설정·SDK·외부 에셋·씬/프리팹·meta 내용의 공개를 허용하지 않는다. .public-sync는 동기화 상태 관리에 필요해 유지한다. 과거 Source 경로는 승인 이력 검증만 지원하고 현재 공개 파일은 원본 경로로 이동한다.

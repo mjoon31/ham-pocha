@@ -37,14 +37,17 @@ flowchart TD
 
 ## 원본 코드
 
-- [MainSceneLoader](../../Source/Core/MainSceneLoader.cs): 시작 연결과 저장 복원 진입 요청.
-- [SceneRegion](../../Source/Core/SceneRegion.cs): 지역 루트와 도착점 조회.
-- [SceneTransitionFade](../../Source/UI/SceneTransitionFade.cs): 전환 표시와 입력 차단.
+- [MainSceneLoader](../../Assets/02_Scripts/Core/MainSceneLoader.cs): 시작 연결과 저장 복원 진입 요청.
+- [SceneRegion](../../Assets/02_Scripts/Core/SceneRegion.cs): 지역 루트와 도착점 조회.
+- [SceneTransitionFade](../../Assets/02_Scripts/UI/SceneTransitionFade.cs): 전환 표시와 입력 차단.
 
-위 링크는 비공개 원본에서 실제 파일을 가리키며 공개 추출에서는 대응하는 `Source/` 경로로 연결된다. 원본 C#을 공개용으로 다시 작성하거나 내부 구현을 빈 코드로 바꾸지 않는다. 참조하는 일부 타입의 구현은 공개 대상 밖이므로 이 세 파일만으로 독립 컴파일·실행할 수 있다는 의미는 아니다.
+위 링크는 비공개 원본에서 실제 파일을 가리키며 공개 추출에서는 대응하는 원본 `Assets/` 경로로 연결된다. 원본 C#을 공개용으로 다시 작성하거나 내부 구현을 빈 코드로 바꾸지 않는다. 참조하는 일부 타입의 구현은 공개 대상 밖이므로 이 세 파일만으로 독립 컴파일·실행할 수 있다는 의미는 아니다.
 
 ## 공개 범위와 검증
 
 저장·활성 기기 세션의 핵심 구현, 인증 설정, SDK·외부 에셋·씬/프리팹·빌드 파일은 공개하지 않는다. 폴더와 호출 관계의 설명이 해당 내부 구현의 공개를 의미하지 않는다. 개발자 판단·개발자 직접 설정/빌드/실기기 검사·AI 코드와 기록 작업은 [협업 기록](../Workflow/Collaboration_Log.md) 및 검수한 GitHub Issues에 구분해 남긴다.
 
 검증 결과는 [기술 기준선](Technical_Baseline.md)의 실제 범위를 따른다. 구조 설명과 공개 코드 추출은 새 Android 실행·성능·전체 보안 검증 결과가 아니다.
+
+
+2026-11-15 개발자 지시: 공개 파일은 별도 Source 디렉터리로 재배치하지 않고 원본 Assets 상대 경로에 둔다. Assets 전체 실제 하위 디렉터리는 공개하며, 공개 파일이 없는 말단 폴더는 내용이 빈 .gitkeep으로 보존한다. 이는 디렉터리 표시만 허용하며 핵심 코드·인증 설정·SDK·외부 에셋·씬/프리팹·meta 내용의 공개를 허용하지 않는다. .public-sync는 동기화 상태 관리에 필요해 유지한다. 과거 Source 경로는 승인 이력 검증만 지원하고 현재 공개 파일은 원본 경로로 이동한다.

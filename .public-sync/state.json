@@ -19,7 +19,8 @@
     "37c2b1ee-5547-4596-a2e3-5775b72af6db",
     "6936f6f3-098e-4640-8496-ca26420dad69",
     "6919d33c-3967-4751-bf5b-c2d4d713f695",
-    "286f5515-7494-4632-9ee2-eb4d8964c249"
+    "286f5515-7494-4632-9ee2-eb4d8964c249",
+    "692803fd-0c1d-44cd-9ab1-132e9bb29f62"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
@@ -141,6 +142,7 @@
     "Assets/Plugins/tvOS/Firebase/libFirebaseCppFirestore.xcframework/tvos-arm64/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
     "Assets/Plugins/tvOS/Firebase/libFirebaseCppFirestore.xcframework/tvos-arm64_x86_64-simulator/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
     "Assets/Rendering/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
-    "Assets/StreamingAssets/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    "Assets/StreamingAssets/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "Assets/02_Scripts/Editor/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
   }
 }

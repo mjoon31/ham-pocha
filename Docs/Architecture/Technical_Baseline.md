@@ -52,3 +52,8 @@ Assembly-CSharp 소스40개·컴파일 진행 아님·현재 Console error 조�
 위의 Android·로컬 저장·클라우드 전체 미완료 표기는 해당 과거 점검 시점이다. 현재는 Firebase UID별 LocalSave/GameSave·Firestore CloudSave/CloudSession·GoogleLogin·타이틀 계속하기가 연결됐고, 실제 저장/복원·업로드·계정 분리·활성 기기 기본 동작은 개발자 실기기 보고 범위 PASS다. 코드 컴파일·순수 파일15개·에뮬레이터 규칙33개 PASS와 개발자 실기기 보고를 별개 근거로 유지한다.
 
 S20 최초 오프라인 신규 로그인 차단과 D02 원래 역방향 업로드 복원은 개발자 추가 확인으로 PASS다. D08 엄밀 경합, E01~03 및 정량 성능은 미확인이다. 실서비스 현재 규칙 원문·전체 보안을 이번 상태 갱신에서 재검증하지 않았다. 신규 저장/클라우드와 일부 SDK/설정은 아직 미커밋이다. 최신 상태 (공개 제외), 조건별 검사 (공개 제외). 이번 갱신은 문서만 수정했다.
+
+## 2026-11-15 로컬 구현 후속 — 회차12
+
+RecipeData/ContentCatalog SO·Growth, MarketUi/MarketView, 상단 CookingUi/월드 OrderIconUi, 별도 InventoryHud/InventorySlotUi·PauseUi를 연결했다. 가방3/창고5·합산 조리·수동 이동, 공통 방문/도착 접수·포장 선두 전진·음식 재사용을 로컬 구현했다. schema3 위 콘텐츠버전3·SaveJson 원문 누락 필드 보완을 사용한다. 정확한 설정/파일은 Content_Flow (공개 제외), 경위는 IR005 (공개 제외).
+Fatigue 분당1·수면20·GameplayTiming 단일화/TutorialTiming 삭제를 반영했고 현재 회복 허용 IsInactive 또는 FreeRoam은 유지한다. 피로21/판매 회귀17 PASS (공개 제외), 판매17/저장23 PASS (공개 제외)는 당시 버전. 회차12 컴파일/정적 확인과 Play/Android·실저장/두 기기·UI/성능 NOT RUN을 구분한다. 테스트 제외 유지.

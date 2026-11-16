@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 using System.Collections;
 using HamPocha.UI;
 
@@ -9,15 +10,52 @@ namespace HamPocha.Core
     {
         [SerializeField] private SceneLoadManager _sceneLoader;
         [SerializeField] private SceneType _startScene = SceneType.Home;
+        private bool _lostFocus;
+        private bool _wasPaused;
 
         private void Awake()
         {
             // 상태 로그는 유지하되 일반 정보 로그의 호출 스택 생성 비용은 줄인다.
             // Warning/Error/Exception의 스택 설정은 바꾸지 않는다.
             if (!Application.isEditor) Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
+            ApplyFrameRate("main_awake");
+        }
+
+        private void ApplyFrameRate(string reason)
+        {
+            int previous = Application.targetFrameRate;
             Application.targetFrameRate = 60;
 
-            Debug.Log("[Performance] event=frame_rate result=configured target=60");
+            // 목표 설정과 기기의 표시 조건을 구분해서 기록한다. 실측 FPS는 아니다.
+            Debug.Log($"[Performance] frame={Time.frameCount} event=frame_rate result=configured reason={reason} previous={previous} target={Application.targetFrameRate} refresh_hz={Screen.currentResolution.refreshRateRatio.value:F2} render_interval={OnDemandRendering.renderFrameInterval}", this);
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (!hasFocus)
+            {
+                _lostFocus = true;
+                return;
+            }
+
+            if (!_lostFocus) return;
+
+            _lostFocus = false;
+            ApplyFrameRate("focus_returned");
+        }
+
+        private void OnApplicationPause(bool isPaused)
+        {
+            if (isPaused)
+            {
+                _wasPaused = true;
+                return;
+            }
+
+            if (!_wasPaused) return;
+
+            _wasPaused = false;
+            ApplyFrameRate("app_resumed");
         }
 
         private IEnumerator Start()

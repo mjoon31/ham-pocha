@@ -12,6 +12,9 @@ namespace HamPocha.Core
 
         private void Awake()
         {
+            // 상태 로그는 유지하되 일반 정보 로그의 호출 스택 생성 비용은 줄인다.
+            // Warning/Error/Exception의 스택 설정은 바꾸지 않는다.
+            if (!Application.isEditor) Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
             Application.targetFrameRate = 60;
 
             Debug.Log("[Performance] event=frame_rate result=configured target=60");

@@ -10,6 +10,13 @@ namespace HamPocha.Core
         [SerializeField] private SceneLoadManager _sceneLoader;
         [SerializeField] private SceneType _startScene = SceneType.Home;
 
+        private void Awake()
+        {
+            Application.targetFrameRate = 60;
+
+            Debug.Log("[Performance] event=frame_rate result=configured target=60");
+        }
+
         private IEnumerator Start()
         {
             if (_sceneLoader == null)

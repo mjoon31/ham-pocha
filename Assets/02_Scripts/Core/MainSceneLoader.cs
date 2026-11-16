@@ -30,6 +30,8 @@ namespace HamPocha.Core
                 yield break;
             }
 
+            if (GetComponent<HamPocha.UI.TutorialUi>() == null) gameObject.AddComponent<HamPocha.UI.TutorialUi>();
+
             LoadingSceneController loadingScreen = FindObjectOfType<LoadingSceneController>();
             if (CloudSave.Instance != null && CloudSave.Instance.IsActiveSession)
             {

@@ -14,7 +14,7 @@
 | `Research/` | 접근 진단 (공개 제외), [시장조사](Research/Market_Research.md), 한국 리뷰 20건 (공개 제외), [협동 3개·솔로 3개](Research/Concept_Comparison.md), 운영 후속 조사·채택 (공개 제외), 시장조사와 기획 선택 (공개 제외) |
 | `Planning/` | GDD (공개 제외), 콘텐츠·해금 (공개 제외), Cuisineer 참고 (공개 제외), MVP (공개 제외), 기본 햄스터 모델 (공개 제외) |
 | `Decisions/` | 게임 선정 (공개 제외), 결정 목록 (공개 제외) |
-| `Architecture/` | [기술 현황](Architecture/Technical_Baseline.md), 현재 콘텐츠/수납/주문 연결 (공개 제외), [ADR 양식](Architecture/ADR_Template.md), [PoC 양식](Architecture/PoC_Template.md) |
+| `Architecture/` | [기술 현황](Architecture/Technical_Baseline.md), 현재 콘텐츠/수납/주문 연결 (공개 제외), 튜토리얼 (공개 제외), 계정 전환 (공개 제외), [ADR 양식](Architecture/ADR_Template.md), [PoC 양식](Architecture/PoC_Template.md) |
 | `Git/` | GitHub 운영 (공개 제외), 커밋 (공개 제외), 비공개·공개 자동화 (공개 제외) |
 | `Issue_Records/` | [과정 기록 운영](Issue_Records/README.md), [요청·제안·결정·검수·재수정 양식](Issue_Records/Issue_Record_Template.md), `Records/` 실제 작업 과정 |
 | `Test/` | [Android 계획](Test/Android_Test_Plan.md), 게임 기능 검증 계획 (공개 제외), [기록 양식](Test/Test_Log_Template.md), [성능 기록](Test/Performance_Log_Template.md), [플레이테스트](Test/Playtest_Template.md), `Logs/` 실제 결과 |

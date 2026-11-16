@@ -57,3 +57,9 @@ S20 최초 오프라인 신규 로그인 차단과 D02 원래 역방향 업로�
 
 RecipeData/ContentCatalog SO·Growth, MarketUi/MarketView, 상단 CookingUi/월드 OrderIconUi, 별도 InventoryHud/InventorySlotUi·PauseUi를 연결했다. 가방3/창고5·합산 조리·수동 이동, 공통 방문/도착 접수·포장 선두 전진·음식 재사용을 로컬 구현했다. schema3 위 콘텐츠버전3·SaveJson 원문 누락 필드 보완을 사용한다. 정확한 설정/파일은 Content_Flow (공개 제외), 경위는 IR005 (공개 제외).
 Fatigue 분당1·수면20·GameplayTiming 단일화/TutorialTiming 삭제를 반영했고 현재 회복 허용 IsInactive 또는 FreeRoam은 유지한다. 피로21/판매 회귀17 PASS (공개 제외), 판매17/저장23 PASS (공개 제외)는 당시 버전. 회차12 컴파일/정적 확인과 Play/Android·실저장/두 기기·UI/성능 NOT RUN을 구분한다. 테스트 제외 유지.
+
+## 2026-11-16 현재 구현과 검수 경계
+
+자유조리33d88be·저장/전환성능77dcf5a·슬롯/UI db19ba9가 로컬 Git 이력에 있다. 검증을 유지한 선택 필드 파싱·단일 저장 작업·30/60초 주기·전환/입력 재등록·UiTextCache/변경 때 갱신·슬롯 일괄 확정/부분 교환을 반영했고 개발자 목표 기능 수락은 IR005 회차24 범위다. Canvas/장시간 성능은 남아 있다.
+미커밋 후속은 TutorialUi/TutorialInputMask/TutorialTouch·창 소유자별 이동 잠금·동적 수집 목표·Growth 음식 연계 해금, 계정 확인/게스트 이전·SaveJson/Growth 선택 필드 호환·MainSceneLoader 초기/복귀 target60 공통화다. 튜토리얼 구조 (공개 제외), 계정 구조 (공개 제외), 현재 상태 (공개 제외)를 따른다.
+튜토리얼72소스/260참조 독립 컴파일 오류0·정적 PASS는 Editor/Android 실행이 아니다. 계정 프레임은 회차6 개발자 정상 보고 범위 수락이며 측정 FPS/원인 확정과 구분한다. 원본0.2.3/code15와 실제 설치 APK 동일성은 별도. 새 SDK/서버 규칙/실계정 변경을 이번 문서 작업이 수행한 것으로 기록하지 않는다.

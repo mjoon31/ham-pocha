@@ -1,6 +1,6 @@
 # 테스트 실행 기록 양식
 
-이 파일은 미실행 양식이다. 실제 결과는 `Logs/YYYY-MM-DD_subject.md`에 저장한다.
+이 파일은 미실행 양식이다. 실제 결과는 `Logs/YYYY-MM-DD_subject.md`에 저장한다. 빌드 식별/버전 운영은 빌드 규칙 (공개 제외)을 따른다.
 
 ## 실행 정보
 
@@ -9,7 +9,10 @@
 - IR 문서·회차 / 검증 실행자·검토자 / 실제 개발자 지적·최종 판단(없으면 미확인):
 - commit / dirty 상태 / 최초 커밋 전 기준 파일:
 - Unity·패키지 / Editor·에뮬레이터·Android 실기기 구분:
-- 빌드 버전·코드·APK SHA-256 / Development·Profiler·로그 설정:
+- 주요 변경·업데이트 상태 / 권장 앱 버전·Version Code·APK 이름·개발자 결정:
+- 실제 앱 버전·Version Code·목표FPS / 설정 변경 실행자·빌드 실행자·일시 KST:
+- 실제 APK 생성 상태·파일명/위치·SHA-256·내부 버전/코드대조 / 설치 실행자·실행 APK 동일성 근거:
+- Development·Profiler·로그 설정 / 단계별 미실행 NOT RUN·미확인 정보:
 - 기기·OS·화면·품질·네트워크(필요 시):
 
 ## 절차와 결과

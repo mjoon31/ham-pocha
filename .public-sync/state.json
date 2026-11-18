@@ -32,7 +32,8 @@
     "ad09abb5-5174-4736-8b83-fe1d5ccb9ddd",
     "0826efb1-9699-4a1e-939b-84180a55c5fa",
     "80cd9479-a837-4b07-a6e9-39017719221a",
-    "789ab3b8-5001-4799-824d-808e40389638"
+    "789ab3b8-5001-4799-824d-808e40389638",
+    "fe49c802-851a-41a7-9a3a-5e13e5455888"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
@@ -44,7 +45,7 @@
     "Docs/Issue_Records/Records/IR-20261105-002_mobile-concept-research.md": "472cda24f3744cdb0aae6654be1abade5d219348",
     "Docs/Issue_Records/Records/IR-20261106-001_project-rename.md": "9d9946b2d21919e38f34a2d995717888804c6848",
     "Docs/Issue_Records/Records/IR-20261106-002_branch-policy.md": "aa54929494862e6a5c14e34a839749bb144e7a5b",
-    "Docs/Issue_Records/Records/IR-20261106-003_public-sync.md": "8bbc52aa9ecc080b68264fafce8030f95274478d",
+    "Docs/Issue_Records/Records/IR-20261106-003_public-sync.md": "900fc4f3d546956e454aea699d1551a798a7b119",
     "Docs/README.md": "9f29c98ac9f3416813ff37bf051842f04d376f53",
     "Docs/Research/Competitor_Comparison.md": "25668d2d158644efc250138e8274e3ab66cc34cf",
     "Docs/Research/Concept_Comparison.md": "2cc56d4ee22e79e1faa706232ddccd746e11df93",
@@ -157,6 +158,13 @@
     "Assets/StreamingAssets/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
     "Assets/02_Scripts/Editor/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
     "Assets/06_Materials/WorldPoC/OrderIcons/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
-    "Assets/10_Data/Content/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    "Assets/10_Data/Content/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "Assets/02_Scripts/Data/SaveId.cs": "bdf1ddd8a7313ca8919b7da77ae83a8b525a2686",
+    "Assets/02_Scripts/Editor/SaveIdSetup.cs": "b674e52bfe80abd05379a03f2413b27f43c78bfa",
+    "Docs/Editor_Tools/SaveIdSetup.md": "25008962c754b62a550fc2d4c680dd99d0a8baa3",
+    "Docs/Git/Commit_Template.md": "87fdc1b10dd6a13c4c59bdd21c75140e1e628046",
+    "Docs/Git/Public_Sync_Workflow.md": "02879fa423b203d0a1b203b11e3060bb83817b20",
+    "Docs/Rules/Development_Records_Rules.md": "ba5f50e071b6a5357f27380dfd2a38fc07572e7a",
+    "Docs/Rules/Test_Rules.md": "6c61ff15a4e233db08c726f1ad54e8a4a4332e29"
   }
 }

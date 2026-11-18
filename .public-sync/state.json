@@ -31,12 +31,13 @@
     "3878b15b-3323-4b65-9e48-c429a64095b2",
     "ad09abb5-5174-4736-8b83-fe1d5ccb9ddd",
     "0826efb1-9699-4a1e-939b-84180a55c5fa",
-    "80cd9479-a837-4b07-a6e9-39017719221a"
+    "80cd9479-a837-4b07-a6e9-39017719221a",
+    "789ab3b8-5001-4799-824d-808e40389638"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
     "Docs/Architecture/PoC_Template.md": "93b94cb0c0f4ab77bf4d1cc220f27fe871b98d4b",
-    "Docs/Architecture/Technical_Baseline.md": "81c3fad07f06b0f6ab93df7c60c458f3c786371b",
+    "Docs/Architecture/Technical_Baseline.md": "3a1d77f5b7f30167143a6c9a6aaa56dc63eb5cc1",
     "Docs/Issue_Records/Issue_Record_Template.md": "f1babc0e5081c06bfac79aafc6b34f333d938d5f",
     "Docs/Issue_Records/README.md": "8d6801c3c193a1f4d5465133bf7adafe6aed5dd4",
     "Docs/Issue_Records/Records/IR-20261105-001_commit-workflow.md": "959aa42b476a89da14bf1673e9196d130acf03ab",
@@ -65,7 +66,7 @@
     "Docs/Workflow/Collaboration_Log.md": "34b738cb7121c3bff6b768b493f6d19c041a71c0",
     "Docs/Workflow/Daily_Report_Template.md": "5f58a05ccfd71697b35ca657a2696706485c9f78",
     "Docs/Workflow/Development_Flow.md": "4cc4aa1b945c8306047f2500da84bd876ad2cddd",
-    "Docs/Architecture/Scene_Flow.md": "a1e4716b2fcf8737c7e329803487361c329d340f",
+    "Docs/Architecture/Scene_Flow.md": "b265cc995d8e23eb04fed7b6165bffe0f051e447",
     "Docs/Rules/Project_Structure.md": "710b27479c2c072fd128278ddae497741674eabb",
     "Source/Core/MainSceneLoader.cs": null,
     "Source/Core/SceneRegion.cs": null,

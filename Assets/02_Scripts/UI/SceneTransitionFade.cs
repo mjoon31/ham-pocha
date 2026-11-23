@@ -16,13 +16,14 @@ namespace HamPocha.UI
 
         private const float LoadingDotSize = 34f;
         private const float LoadingDotSpacing = 50f;
+        private const int TravelCanvasOrder = 32760;
 
         private RectTransform _travelArtwork;
         private readonly Image[] _dots = new Image[3];
         private float _travelStart;
         private int _activeDot;
 
-        public float Alpha { get { return _canvasGroup.alpha; } }
+        public float Alpha { get { return _canvasGroup != null ? _canvasGroup.alpha : 0f; } }
 
         public void Show(bool startBlack, bool showTravel = false)
         {
@@ -49,7 +50,7 @@ namespace HamPocha.UI
             _travelStart = Time.unscaledTime;
             _activeDot = -1;
             if (showTravel) Update();
-            _canvasGroup.alpha = startBlack ? 1f : 0f;
+            _canvasGroup.alpha = startBlack || showTravel ? 1f : 0f;
             _canvasGroup.blocksRaycasts = true;
         }
 
@@ -58,6 +59,10 @@ namespace HamPocha.UI
             UiSkin skin = UiSkin.Load();
             _travelArtwork = HudLayout.Create("TravelLoading", _panel.transform, Vector2.zero, Vector2.zero, Vector2.zero);
             _travelArtwork.anchorMax = Vector2.one;
+            Canvas overlay = _travelArtwork.gameObject.AddComponent<Canvas>();
+            overlay.overrideSorting = true;
+            overlay.sortingOrder = TravelCanvasOrder;
+            _travelArtwork.gameObject.AddComponent<GraphicRaycaster>();
             Image background = _travelArtwork.gameObject.AddComponent<Image>();
             background.color = new Color32(167, 198, 135, 255);
             HudLayout.Icon("Hamster", _travelArtwork, Vector2.zero, new Vector2(164f, 164f), skin?.HappyHamster);
@@ -81,19 +86,22 @@ namespace HamPocha.UI
 
         public IEnumerator FadeOut()
         {
+            if (_travelArtwork != null && _travelArtwork.gameObject.activeInHierarchy) yield break;
             yield return FadeTo(1f);
         }
 
         public IEnumerator FadeIn()
         {
+            if (_travelArtwork != null && _travelArtwork.gameObject.activeInHierarchy) yield break;
             yield return FadeTo(0f);
         }
 
-        public IEnumerator HoldBlack()
+        public IEnumerator HoldBlack(float elapsed = 0f)
         {
             _canvasGroup.alpha = 1f;
 
-            yield return new WaitForSecondsRealtime(_blackHoldSeconds);
+            float remaining = _blackHoldSeconds - elapsed;
+            if (remaining > 0f) yield return new WaitForSecondsRealtime(remaining);
         }
 
         private IEnumerator FadeTo(float target)

@@ -51,7 +51,8 @@
     "a430ecc0-a05d-4ec1-8fff-d8f99f78b5be",
     "68cadf20-9ac7-4e04-8703-d568bf4596ac",
     "511b6c51-f61e-446e-b1e1-7320a7733cef",
-    "0afc568f-f52f-4d75-8087-700f17c9d94e"
+    "0afc568f-f52f-4d75-8087-700f17c9d94e",
+    "79568cd1-1071-4f3f-b237-af9d0247a697"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
@@ -85,7 +86,7 @@
     "Docs/Workflow/Collaboration_Log.md": "34b738cb7121c3bff6b768b493f6d19c041a71c0",
     "Docs/Workflow/Daily_Report_Template.md": "5f58a05ccfd71697b35ca657a2696706485c9f78",
     "Docs/Workflow/Development_Flow.md": "3ddd7cc96231e747267a2150987db655e4dc2c90",
-    "Docs/Architecture/Scene_Flow.md": "b2df6d3f8c6e2cb005f4e3ef6514ed3de6542f9d",
+    "Docs/Architecture/Scene_Flow.md": "f0a0ce7721bd417d097e3526e492ed928b24dcd4",
     "Docs/Rules/Project_Structure.md": "09d5bde507cd1b8d2c1daec05d2d198c38a1ec07",
     "Source/Core/MainSceneLoader.cs": null,
     "Source/Core/SceneRegion.cs": null,
@@ -115,7 +116,7 @@
     "Assets/00_ThirdParty/VirtualJoystick/Scripts/Editor/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
     "Assets/00_ThirdParty/VirtualJoystick/Skins/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
     "Assets/01_Scenes/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
-    "Assets/02_Scripts/Core/MainSceneLoader.cs": "c3da23be5facb63255a517fc55d3160f0535830a",
+    "Assets/02_Scripts/Core/MainSceneLoader.cs": "84f506af30f01af80bf81088094ebbccef176423",
     "Assets/02_Scripts/Core/SceneRegion.cs": "3ab2340be8503321892f9e946bbec0cd49969463",
     "Assets/02_Scripts/Data/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
     "Assets/02_Scripts/Gameplay/Business/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
@@ -126,7 +127,7 @@
     "Assets/02_Scripts/Gameplay/Session/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
     "Assets/02_Scripts/Gameplay/World/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
     "Assets/02_Scripts/Input/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
-    "Assets/02_Scripts/UI/SceneTransitionFade.cs": "2b353f9408d828cb418dd8cd34032eceb4ae3774",
+    "Assets/02_Scripts/UI/SceneTransitionFade.cs": "32a50af04a4c9818262f9cfea4f40c690c3a81ee",
     "Assets/03_Prefabs/Characters/Player/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
     "Assets/03_Prefabs/WorldPoC/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
     "Assets/04_Models/Characters/Player/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",

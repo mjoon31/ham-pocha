@@ -34,7 +34,8 @@
     "80cd9479-a837-4b07-a6e9-39017719221a",
     "789ab3b8-5001-4799-824d-808e40389638",
     "fe49c802-851a-41a7-9a3a-5e13e5455888",
-    "8c2160af-cd16-45db-86bb-0db0ffbee707"
+    "8c2160af-cd16-45db-86bb-0db0ffbee707",
+    "d706e0a2-75f0-4113-b922-f52ec4bbeeb8"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
@@ -47,7 +48,7 @@
     "Docs/Issue_Records/Records/IR-20261106-001_project-rename.md": "9d9946b2d21919e38f34a2d995717888804c6848",
     "Docs/Issue_Records/Records/IR-20261106-002_branch-policy.md": "aa54929494862e6a5c14e34a839749bb144e7a5b",
     "Docs/Issue_Records/Records/IR-20261106-003_public-sync.md": "900fc4f3d546956e454aea699d1551a798a7b119",
-    "Docs/README.md": "9f29c98ac9f3416813ff37bf051842f04d376f53",
+    "Docs/README.md": "0651a26756b6c04097c25298f1cd7e041de4b755",
     "Docs/Research/Competitor_Comparison.md": "25668d2d158644efc250138e8274e3ab66cc34cf",
     "Docs/Research/Concept_Comparison.md": "2cc56d4ee22e79e1faa706232ddccd746e11df93",
     "Docs/Research/Concept_Comparison_Round1.md": "56d49a71ef5a94cef58127a1d3a2047dc5749302",

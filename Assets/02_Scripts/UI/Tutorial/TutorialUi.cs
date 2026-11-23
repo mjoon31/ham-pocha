@@ -25,7 +25,6 @@ namespace HamPocha.UI
         private const float WaypointCursorSize = CursorSize * 1.3f;
         private const float CursorNearHeight = 28.8f;
         private const float CursorFarHeight = 50.4f;
-        private const float GuideButtonClearance = 90f;
         private const float EdgeTravel = 18f;
         private const float TouchShadeAlpha = .62f;
         private const float NoticeShadeAlpha = .08f;
@@ -305,14 +304,14 @@ namespace HamPocha.UI
             UiSkin.SetNoticeArtwork(background, skin);
             _message = Label("Message", box, Vector2.zero, Vector2.zero, Vector2.zero);
             _message.rectTransform.anchorMax = Vector2.one;
-            _message.rectTransform.offsetMin = new Vector2(56, GuideButtonClearance);
-            _message.rectTransform.offsetMax = new Vector2(-56, -GuideTextPadding);
-            _message.alignment = TextAnchor.UpperCenter;
+            _message.rectTransform.offsetMin = new Vector2(56, GuideTextPadding);
+            _message.rectTransform.offsetMax = new Vector2(-216, -GuideTextPadding);
+            _message.alignment = TextAnchor.MiddleLeft;
             _message.color = UiSkin.Ink;
             _message.fontSize = 32;
             _message.resizeTextForBestFit = false;
             _message.horizontalOverflow = HorizontalWrapMode.Wrap;
-            _message.verticalOverflow = VerticalWrapMode.Overflow;
+            _message.verticalOverflow = VerticalWrapMode.Truncate;
             RectTransform next = CreateRect("Continue", box, Vector2.right, new Vector2(-111, 45), new Vector2(154, 59) * 1.1f);
             Image image = next.gameObject.AddComponent<Image>();
             image.color = new Color(.28f, .43f, .23f);
@@ -972,7 +971,7 @@ namespace HamPocha.UI
             _message.text = _guidePages[_guidePageIndex];
             if (_guideWidth <= 0f) return;
             RectTransform guide = (RectTransform)_guide.transform;
-            float height = Mathf.Max(GuideMinHeight, Mathf.Ceil(_message.preferredHeight) + GuideTextPadding + GuideButtonClearance);
+            float height = Mathf.Max(GuideMinHeight, Mathf.Ceil(_message.preferredHeight) + GuideTextPadding * 2f);
             guide.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
         }
 
@@ -1409,7 +1408,7 @@ namespace HamPocha.UI
                 new Vector2(WaypointCursorSize, CursorFarHeight + heightOffset + cursorHalf - bottom) * scale);
             if (projected.z <= 0 || !visible.Contains(marker.min) || !visible.Contains(marker.max) || OverlapsHud(marker))
             {
-                ShowDirectionCursor(screen, projected.z <= 0, visible, eventCamera);
+                ShowDirectionCursor(screen, visible, eventCamera);
                 return;
             }
 
@@ -1498,6 +1497,8 @@ namespace HamPocha.UI
             AddMarkerObstacle(_hud.Find("MinimapHud/MinimapToggle") as RectTransform, eventCamera);
             AddMarkerObstacle(_hud.Find("ForestHealth") as RectTransform, eventCamera);
             AddMarkerObstacle(_hud.Find("DayPhase") as RectTransform, eventCamera);
+            AddMarkerObstacle(_hud.Find("ClockRow") as RectTransform, eventCamera);
+            AddMarkerObstacle(_hud.Find("TimeCountdown") as RectTransform, eventCamera);
             AddMarkerObstacle(_hud.Find("PlayerResources") as RectTransform, eventCamera);
             AddMarkerObstacle(_quest.Card, eventCamera);
         }
@@ -1515,7 +1516,7 @@ namespace HamPocha.UI
             return false;
         }
 
-        private void ShowDirectionCursor(Vector2 targetScreen, bool behind, Rect visible, Camera eventCamera)
+        private void ShowDirectionCursor(Vector2 targetScreen, Rect visible, Camera eventCamera)
         {
             if (_cursor == null) return;
 
@@ -1528,7 +1529,7 @@ namespace HamPocha.UI
             }
             Rect edges = Rect.MinMaxRect(visible.xMin + half, visible.yMin + half, visible.xMax - half, visible.yMax - half);
             Vector2 direction = targetScreen - visible.center;
-            if (behind) direction = -direction;
+            // 직교 카메라의 화면 좌표는 깊이가 음수여도 반전되지 않는다.
             if (direction.sqrMagnitude < 1f) direction = Vector2.down;
             direction.Normalize();
             float toX = Mathf.Abs(direction.x) > .001f ? edges.width * .5f / Mathf.Abs(direction.x) : float.MaxValue;
@@ -1546,7 +1547,7 @@ namespace HamPocha.UI
                     return;
                 }
             }
-            if (!behind && (targetScreen - screen).sqrMagnitude > 1f) direction = (targetScreen - screen).normalized;
+            if ((targetScreen - screen).sqrMagnitude > 1f) direction = (targetScreen - screen).normalized;
             Vector2 position = screen + direction * (EdgeTravel * CursorPulse(Time.unscaledTime) * _canvas.scaleFactor);
             ShowCursor(position, direction, WaypointCursorSize, eventCamera);
         }

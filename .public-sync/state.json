@@ -46,7 +46,8 @@
     "02c4c62f-f574-4a5e-a7dc-2093ea5b71e6",
     "81679e3f-421f-47e0-8e8d-a0afb43ff323",
     "269e61d7-f5d7-4d41-810f-e7e8f97e44aa",
-    "e1665248-e622-476a-8b3e-8708db6e16d6"
+    "e1665248-e622-476a-8b3e-8708db6e16d6",
+    "47f02706-0e1b-4c9c-9df3-575c50e9975c"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
@@ -186,7 +187,7 @@
     "Assets/02_Scripts/Gameplay/Exploration/HarvestTarget.cs": "613d52bea45d315fe52ad6983f4951c97c73c08a",
     "Assets/02_Scripts/Gameplay/Inventory/Inventory.cs": "03397aad4b849b542aa969fdb1ad0b0d6412d0ed",
     "Assets/02_Scripts/Gameplay/Session/GameSessionState.cs": "310e7b2a7126af960fb26b27aaebd8c316735598",
-    "Assets/02_Scripts/UI/Tutorial/TutorialUi.cs": "1df24c0cf8575ab2e2b57e444694d8138b11b673",
+    "Assets/02_Scripts/UI/Tutorial/TutorialUi.cs": "8152bd6468813b054084c52b1c701d0038523af3",
     "Docs/Architecture/Tutorial_Flow.md": "ee8d498dc8e8c473338fc5f47b94c16d5777e9d0",
     "Docs/Issue_Records/Records/IR-20261117-004_business-rework.md": "1eedb085662c923569391c6f3a02d563810de435",
     "Docs/Test/Logs/2026-11-16_tutorial.md": "10448e40b466ac4323bb7a0a0fa20401df2f8db4",

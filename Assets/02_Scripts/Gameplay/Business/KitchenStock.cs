@@ -116,6 +116,21 @@ namespace HamPocha.Gameplay
             return false;
         }
 
+        internal int DisplayStockCount()
+        {
+            int count = 0;
+            foreach (int amount in State.Display) count += amount;
+            foreach (int amount in State.SkewerDisplay) count += amount;
+            return count;
+        }
+
+        internal bool HasUnstoredIngredients()
+        {
+            for (int index = 0; index < Inventory.IngredientTypeCount; index++)
+                if (_inventory.GetCount((IngredientType)index) > 0) return true;
+            return false;
+        }
+
         internal int LatestDisplayDish()
         {
             List<int> order = State.DisplayOrder;

@@ -55,16 +55,30 @@ namespace HamPocha.Gameplay
         public string CloseNotice { get { return "영업을 종료할까요?\n들고 있는 음식은 서빙/지정 장소 폐기 후 종료할 수 있습니다.\n조리 중인 음식은 폐기하며 재료를 반환하지 않습니다.\n완성 음식은 공용창고에 보관하고 공간이 부족한 음식은 폐기합니다.\n식사 중 손님은 즉시 정산 후 퇴장합니다."; } }
 
         public long Gold { get { return _business.Gold; } }
+
+        internal void ApplyAdGold(long gold)
+        {
+            _business.Gold = gold;
+            Version++;
+        }
         internal bool GrantTutorialSleepReward()
         {
             TutorialSaveData tutorial = _growth.Tutorial;
             if (tutorial == null || !tutorial.Enabled || tutorial.Step != 20 ||
                 tutorial.ClosingLesson != 6 || tutorial.CompletedTutorialSleep) return false;
             tutorial.CompletedTutorialSleep = true;
-            _business.Gold += 100;
+            tutorial.TutorialRewardQueued = true;
             Version++;
-            Debug.Log("[Gameplay] event=tutorial_reward result=granted gold=100", this);
+            Debug.Log("[Gameplay] event=tutorial_reward result=queued gold=300", this);
             return true;
+        }
+
+        internal void ApplyMailboxReward(CookingSaveData saved)
+        {
+            _business.Gold = saved.Business.Gold;
+            if (_growth.Tutorial != null && saved.Growth.Tutorial != null)
+                _growth.Tutorial.TutorialFurnitureGranted = saved.Growth.Tutorial.TutorialFurnitureGranted;
+            Version++;
         }
         public long SalesXp { get { return ToExperience(_business.SalesXp); } }
         public int Level { get { return Growth.Level(_catalog, SalesXp); } }
@@ -86,7 +100,7 @@ namespace HamPocha.Gameplay
         public int InsertedCount { get { return _insertedCount; } }
         public int RequiredCount { get { return _catalog == null ? 1 : _catalog.Recipes[(int)_selectedRecipe].TotalCount; } }
         public bool CanRun { get { return _clock.CanAdvance && _session.CurrentActivity == PlayerActivity.Business; } }
-        public string SummaryText { get { return $"영업 {_business.LastSummaryDay}회 결산\n정상 판매 {_business.SummaryServed} · 오배송 {_business.SummaryWrong} · 미제공 {_business.SummaryMissed}\n매출 {_business.SummaryGold} 골드 · 판매 경험치 {ToExperience(_business.SummaryXp)}\n보유 {Gold} 골드 · 햄스터 레벨 {Level}"; } }
+        public string SummaryText { get { return $"영업 {_business.LastSummaryDay}회 결산\n정상 판매 {_business.SummaryServed} · 조리 실수 {_business.SummaryWrong} · 접수 누락 {_business.SummaryMissed}\n매출 {_business.SummaryGold} 골드 · 판매 경험치 {ToExperience(_business.SummaryXp)}"; } }
 
         private long ToExperience(long salePoints)
         {
@@ -572,18 +586,22 @@ namespace HamPocha.Gameplay
             if (CanRun) AssignStoredFood();
         }
 
-        internal int TodayServedCount => _session.HasOpenedBusinessToday ? ServedCount : 0;
-        internal long TodaySalesGold => _session.HasOpenedBusinessToday ? _business.DailyGold : 0;
+        private bool HasPanelSales => SummaryPending || _session.HasOpenedBusinessToday;
+        internal int TodayServedCount => SummaryPending ? _business.SummaryServed : HasPanelSales ? ServedCount : 0;
+        internal long TodaySalesGold => SummaryPending ? _business.SummaryGold : HasPanelSales ? _business.DailyGold : 0;
+        internal int PanelMissedCount => SummaryPending ? _business.SummaryMissed : HasPanelSales ? MissedCount : 0;
+        internal int PanelWrongCount => SummaryPending ? _business.SummaryWrong : HasPanelSales ? WrongFoodCount : 0;
+        internal string PanelExperience => ToExperience(SummaryPending ? _business.SummaryXp : HasPanelSales ? _business.DailyXp : 0).ToString("N0");
 
         internal int GetTodayMenuCount(int menu)
         {
-            return _session.HasOpenedBusinessToday && _business.DailyMenuCounts != null &&
+            return HasPanelSales && _business.DailyMenuCounts != null &&
                 menu >= 0 && menu < _business.DailyMenuCounts.Length ? _business.DailyMenuCounts[menu] : 0;
         }
 
         internal long GetTodayMenuGold(int menu)
         {
-            return _session.HasOpenedBusinessToday && _business.DailyMenuGold != null &&
+            return HasPanelSales && _business.DailyMenuGold != null &&
                 menu >= 0 && menu < _business.DailyMenuGold.Length ? _business.DailyMenuGold[menu] : 0;
         }
 
@@ -665,6 +683,7 @@ namespace HamPocha.Gameplay
             _business.SummaryGold = _business.DailyGold;
             _business.SummaryXp = _business.DailyXp;
             _business.SummaryPending = true;
+            GameplayAnalytics.Stage(11, "day_closed");
             SetMessage($"결산 완료 · 음식 보관{stored}/폐기{discarded} · 보상은1회 정산했습니다.");
             Debug.Log($"[Gameplay] event=business_summary result=completed sequence={_statisticsDay} stored={stored} discarded={discarded}", this);
         }
@@ -673,6 +692,7 @@ namespace HamPocha.Gameplay
         {
             if (!SummaryPending) return;
             _business.SummaryPending = false;
+            GameplayAnalytics.Stage(12, "settlement_viewed");
             Version++;
             Sfx.Play(SfxCue.MenuClose);
             Debug.Log($"[UI] frame={Time.frameCount} event=business_summary result=confirmed day={_business.LastSummaryDay}", this);

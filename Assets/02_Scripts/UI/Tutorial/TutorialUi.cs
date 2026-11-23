@@ -22,16 +22,18 @@ namespace HamPocha.UI
         private const float GuideLeft = .215f;
         private const float GuideRight = .75f;
         private const float CursorSize = 91.2f;
+        private const float WaypointCursorSize = CursorSize * 1.3f;
         private const float CursorNearHeight = 28.8f;
         private const float CursorFarHeight = 50.4f;
-        private const float MoveLabelOffset = 81f;
+        private const float GuideButtonClearance = 90f;
         private const float EdgeTravel = 18f;
         private const float TouchShadeAlpha = .62f;
         private const float NoticeShadeAlpha = .08f;
         private const float OverviewSpeed = .85f;
         private const float OverviewReturnSeconds = .6f;
         private const float OverviewEdgeInset = .06f;
-        private const float VillageOverviewScale = 1.85f;
+        private const float VillageOverviewScale = 2.05f;
+        private const float VillagePanBow = 3.2f;
         private const int ForestEntryNotice = 1;
         private const string ForestEntryCopy = "1번 숲에서 당근과 빵을 구할 수 있어요. 확인을 누른 뒤 입장하세요.";
         [SerializeField, Min(0.5f)] private float _panSeconds = 3f;
@@ -50,6 +52,7 @@ namespace HamPocha.UI
         private Canvas _canvas;
         private GameObject _root;
         private PanelMotion _guide;
+        private CanvasGroup _guideGroup;
         private RectTransform _guideMascot;
         private string _guideCopy = "";
         private float _guideWidth;
@@ -70,9 +73,7 @@ namespace HamPocha.UI
         private ForestPortal _exit;
         private Text _message;
         private TutorialGatherPanel _quest;
-        private Text _pointer;
         private Button _next;
-        private RectTransform _highlight;
         private RectTransform _cursor;
         private RectTransform _hud;
         private Selectable[] _hudControls;
@@ -105,6 +106,7 @@ namespace HamPocha.UI
         private Vector3 _cameraLocal;
         private Vector3 _panFrom;
         private Vector3 _panTo;
+        private Vector3 _panBow;
         private float _cameraSize;
         private float _panSize;
         private float _panDuration;
@@ -217,7 +219,7 @@ namespace HamPocha.UI
                 HomeTip + VillageTip + MarketRoute + ForestRoute + ForestCollect + CollectAll +
                 ForestReturn + FirstSale + GrowthMenu + UpgradeTip + OutdoorTip + UnlockTip + FinishTip +
                 string.Join(" ", PochaKitchen.BusinessTips) +
-                ForestEntryCopy + "확인 모든 재료 모으기 나가기 버튼을 눌러 마을로 돌아가세요. 표시된 출구로 이동해 마을로 돌아가세요. 이곳으로 이동 " +
+                ForestEntryCopy + "확인 모든 재료 모으기 나가기 버튼을 눌러 마을로 돌아가세요. 표시된 출구로 이동해 마을로 돌아가세요. " +
                 Inventory.GetIngredientName(IngredientType.Carrot) + Inventory.GetIngredientName(IngredientType.Bread));
         }
 
@@ -296,15 +298,16 @@ namespace HamPocha.UI
             box.anchorMax = new Vector2(GuideRight, 0);
             box.pivot = new Vector2(.5f, 0f);
             _guide = PanelMotion.Attach(box.gameObject, box);
+            _guideGroup = box.GetComponent<CanvasGroup>();
             _guide.SetImmediate(false);
             Image background = box.gameObject.AddComponent<Image>();
             UiSkin skin = UiSkin.Load();
             UiSkin.SetNoticeArtwork(background, skin);
             _message = Label("Message", box, Vector2.zero, Vector2.zero, Vector2.zero);
             _message.rectTransform.anchorMax = Vector2.one;
-            _message.rectTransform.offsetMin = new Vector2(56, GuideTextPadding);
-            _message.rectTransform.offsetMax = new Vector2(-216, -GuideTextPadding);
-            _message.alignment = TextAnchor.UpperLeft;
+            _message.rectTransform.offsetMin = new Vector2(56, GuideButtonClearance);
+            _message.rectTransform.offsetMax = new Vector2(-56, -GuideTextPadding);
+            _message.alignment = TextAnchor.UpperCenter;
             _message.color = UiSkin.Ink;
             _message.fontSize = 32;
             _message.resizeTextForBestFit = false;
@@ -325,15 +328,6 @@ namespace HamPocha.UI
             _guideMascot = UiSkin.AddGuideMascot(box, skin);
             _quest = new TutorialGatherPanel(root, skin, UiSkin.FontFor(_cookingUi.TutorialFont), FindObjectOfType<InventoryHud>());
             _quest.Card.SetSiblingIndex(shade.GetSiblingIndex());
-            _highlight = CreateRect("MoveHint", root, Vector2.one * .5f, Vector2.zero, Vector2.zero);
-            RectTransform pointerTag = CreateRect("TargetLabel", _highlight, new Vector2(.5f, 1), new Vector2(0, 25), new Vector2(184, 42));
-            UiSkin.SetNoticeArtwork(pointerTag.gameObject.AddComponent<Image>(), skin, 4f);
-            pointerTag.GetComponent<Image>().raycastTarget = false;
-            _pointer = Label("Caption", pointerTag, Vector2.one * .5f, Vector2.zero, pointerTag.sizeDelta);
-            _pointer.fontSize = 24;
-            _pointer.color = UiSkin.Ink;
-            _pointer.text = "이곳으로 이동";
-            _highlight.gameObject.SetActive(false);
             box.SetAsLastSibling();
             Sprite cursor = Resources.Load<Sprite>("TutorialCursor");
             if (cursor != null)
@@ -873,7 +867,6 @@ namespace HamPocha.UI
             if (!explanation && !_panning && _loader.IsUiOpen && (_uiTarget == null || State.Step == 0))
             {
                 _guide.SetVisible(false);
-                _highlight.gameObject.SetActive(false);
                 ApplyFocus(false, false);
                 return;
             }
@@ -979,7 +972,7 @@ namespace HamPocha.UI
             _message.text = _guidePages[_guidePageIndex];
             if (_guideWidth <= 0f) return;
             RectTransform guide = (RectTransform)_guide.transform;
-            float height = Mathf.Max(GuideMinHeight, Mathf.Ceil(_message.preferredHeight) + GuideTextPadding * 2f);
+            float height = Mathf.Max(GuideMinHeight, Mathf.Ceil(_message.preferredHeight) + GuideTextPadding + GuideButtonClearance);
             guide.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
         }
 
@@ -1052,7 +1045,6 @@ namespace HamPocha.UI
             if (State == null || State.Step != 0 || !NoticeClosed || State.JoystickTouched) return;
             State.JoystickTouched = true;
             _uiTarget = null;
-            _highlight.gameObject.SetActive(false);
             ApplyFocus(false, false);
             SaveProgress();
             Debug.Log("[Input] event=tutorial_joystick result=first_touch", this);
@@ -1272,13 +1264,13 @@ namespace HamPocha.UI
             {
                 Transform pond = region.Find("VillagePark/PondGarden/PondFootprint");
                 if (pond != null) center = pond.position;
-                if (_market != null) center = Vector3.Lerp(_market.transform.position, center, .5f);
+                if (_market != null) center = Vector3.Lerp(_market.transform.position, center, .64f);
             }
             center.y = _loader.PlayerBody.position.y;
-            Pan(center, next, village ? VillageOverviewScale : _forestOverviewScale, ground);
+            Pan(center, next, village ? VillageOverviewScale : _forestOverviewScale, ground, village ? VillagePanBow : 0f);
         }
 
-        private void Pan(Vector3 target, int next, float overviewScale = 1f, BoxCollider ground = null)
+        private void Pan(Vector3 target, int next, float overviewScale = 1f, BoxCollider ground = null, float bow = 0f)
         {
             if (_panRoutine != null)
             {
@@ -1286,10 +1278,10 @@ namespace HamPocha.UI
                 RestoreCamera();
             }
 
-            _panRoutine = StartCoroutine(PanRoutine(target, next, overviewScale, ground));
+            _panRoutine = StartCoroutine(PanRoutine(target, next, overviewScale, ground, bow));
         }
 
-        private IEnumerator PanRoutine(Vector3 target, int next, float overviewScale, BoxCollider ground)
+        private IEnumerator PanRoutine(Vector3 target, int next, float overviewScale, BoxCollider ground, float bow)
         {
             _cameraLocal = _camera.transform.localPosition;
             _cameraSize = _camera.orthographicSize;
@@ -1298,6 +1290,7 @@ namespace HamPocha.UI
             _panDuration = ground != null ? _panSeconds / OverviewSpeed : _panSeconds;
             _panFrom = _camera.transform.position;
             _panTo = _panFrom + target - (ground != null ? GroundViewCenter(_camera, target.y) : _loader.PlayerBody.position);
+            _panBow = _camera.transform.right * bow;
             _panStarted = Time.unscaledTime;
             _panning = true;
             Debug.Log($"[UI] frame={Time.frameCount} event=tutorial_camera result=started step={State.Step} overview_scale={overviewScale} duration={_panDuration:F2}", this);
@@ -1353,13 +1346,20 @@ namespace HamPocha.UI
                 _buttonFocus?.Show(null, default);
                 return;
             }
+            float noticeAlpha = NoticeShadeAlpha;
             if (_panning)
             {
                 float elapsed = Time.unscaledTime - _panStarted;
                 float t = Mathf.SmoothStep(0, 1, elapsed / _panDuration);
                 if (_panGround != null && elapsed > _panDuration + 1f)
                     t = Mathf.SmoothStep(1, 0, (elapsed - _panDuration - 1f) / OverviewReturnSeconds);
-                _camera.transform.position = Vector3.Lerp(_panFrom, _panTo, t);
+                _camera.transform.position = Vector3.Lerp(_panFrom, _panTo, t) + _panBow * (4f * t * (1f - t));
+                if (_panBow != Vector3.zero)
+                {
+                    float alpha = Mathf.SmoothStep(1f, 0f, elapsed / PanelMotion.Duration);
+                    _guideGroup.alpha = alpha;
+                    noticeAlpha *= alpha;
+                }
                 float size = Mathf.Lerp(_cameraSize, _panSize, t);
                 if (_panGround != null)
                     size = Mathf.Min(size, Mathf.Max(_cameraSize, MaximumOverviewSize(_camera, _panGround)));
@@ -1380,17 +1380,15 @@ namespace HamPocha.UI
             bool worldFocus = InteractionOutline.ShowTutorial(exhibit ? _exhibit : visual,
                 exhibit ? _exhibitCamera ?? _camera : waypointCamera, dimWorld ? TouchShadeAlpha : 0f);
             _shade.gameObject.SetActive((touch || _mask.gameObject.activeSelf) && (!dimWorld || !worldFocus));
-            _shade.color = new Color(0f, 0f, 0f, touch ? TouchShadeAlpha : NoticeShadeAlpha);
+            _shade.color = new Color(0f, 0f, 0f, touch ? TouchShadeAlpha : noticeAlpha);
             _buttonFocus.Show(touch ? touchTarget : null, touch ? ScreenRect(touchTarget, eventCamera) : default);
             if (touch)
             {
-                _highlight.gameObject.SetActive(false);
                 ShowTouchFocus(touchTarget, eventCamera);
                 return;
             }
             if (!moving)
             {
-                _highlight.gameObject.SetActive(false);
                 HideCursor();
                 return;
             }
@@ -1404,27 +1402,21 @@ namespace HamPocha.UI
             Rect visible = Screen.safeArea;
             float scale = _canvas.scaleFactor;
             CollectMarkerObstacles(eventCamera);
-            bool showLabel = !monitorTarget;
-            float cursorHalf = CursorSize * .5f;
-            float halfWidth = showLabel ? 100f : cursorHalf;
-            float bottom = CursorNearHeight - cursorHalf;
-            float top = showLabel ? MoveLabelOffset + 50f : CursorFarHeight + cursorHalf;
-            Rect marker = new Rect(screen + new Vector2(-halfWidth, bottom) * scale,
-                new Vector2(2f * halfWidth, top - bottom) * scale);
+            float cursorHalf = WaypointCursorSize * .5f;
+            float heightOffset = (WaypointCursorSize - CursorSize) * .5f;
+            float bottom = CursorNearHeight + heightOffset - cursorHalf;
+            Rect marker = new Rect(screen + new Vector2(-cursorHalf, bottom) * scale,
+                new Vector2(WaypointCursorSize, CursorFarHeight + heightOffset + cursorHalf - bottom) * scale);
             if (projected.z <= 0 || !visible.Contains(marker.min) || !visible.Contains(marker.max) || OverlapsHud(marker))
             {
-                _highlight.gameObject.SetActive(false);
                 ShowDirectionCursor(screen, projected.z <= 0, visible, eventCamera);
                 return;
             }
 
-            _highlight.gameObject.SetActive(showLabel);
-            if (showLabel)
-                _highlight.localPosition = ScreenToLocal((RectTransform)_highlight.parent, screen + Vector2.up * MoveLabelOffset * scale, eventCamera);
             if (_cursor != null)
             {
-                float height = Mathf.Lerp(CursorNearHeight, CursorFarHeight, CursorPulse(Time.unscaledTime));
-                ShowCursor(screen + Vector2.up * height * scale, Vector2.down, eventCamera);
+                float height = Mathf.Lerp(CursorNearHeight, CursorFarHeight, CursorPulse(Time.unscaledTime)) + heightOffset;
+                ShowCursor(screen + Vector2.up * height * scale, Vector2.down, WaypointCursorSize, eventCamera);
             }
         }
 
@@ -1457,7 +1449,7 @@ namespace HamPocha.UI
             Vector2 aim = screen.center + new Vector2(x * Mathf.Min(screen.width * .22f, reach * .33f),
                 y * Mathf.Min(screen.height * .18f, reach * .14f));
             Vector2 position = aim + approach * (reach * .33f + Mathf.Lerp(3f, 18f, pulse) * _canvas.scaleFactor);
-            ShowCursor(position, -approach, eventCamera);
+            ShowCursor(position, -approach, CursorSize, eventCamera);
         }
 
         private static float CursorPulse(float time)
@@ -1471,8 +1463,10 @@ namespace HamPocha.UI
             return local;
         }
 
-        private void ShowCursor(Vector2 screen, Vector2 direction, Camera eventCamera)
+        private void ShowCursor(Vector2 screen, Vector2 direction, float size, Camera eventCamera)
         {
+            Vector2 dimensions = Vector2.one * size;
+            if (_cursor.sizeDelta != dimensions) _cursor.sizeDelta = dimensions;
             _cursor.gameObject.SetActive(true);
             _cursor.localPosition = ScreenToLocal((RectTransform)_cursor.parent, screen, eventCamera);
             _cursor.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f);
@@ -1526,7 +1520,7 @@ namespace HamPocha.UI
             if (_cursor == null) return;
 
             // 손을 회전시켰을 때의 대각선과 왕복 거리까지 포함해 화면과 HUD에 여백을 둔다.
-            float half = (CursorSize * .71f + EdgeTravel + 4f) * _canvas.scaleFactor;
+            float half = (WaypointCursorSize * .71f + EdgeTravel + 4f) * _canvas.scaleFactor;
             if (visible.width <= half * 2 || visible.height <= half * 2)
             {
                 HideCursor();
@@ -1554,7 +1548,7 @@ namespace HamPocha.UI
             }
             if (!behind && (targetScreen - screen).sqrMagnitude > 1f) direction = (targetScreen - screen).normalized;
             Vector2 position = screen + direction * (EdgeTravel * CursorPulse(Time.unscaledTime) * _canvas.scaleFactor);
-            ShowCursor(position, direction, eventCamera);
+            ShowCursor(position, direction, WaypointCursorSize, eventCamera);
         }
 
         private bool TryPlaceDirectionCursor(Vector2 desired, Rect edges, float half, bool vertical, out Vector2 screen)
@@ -1592,6 +1586,7 @@ namespace HamPocha.UI
 
             _panRoutine = null;
             _panGround = null;
+            if (_guideGroup != null) _guideGroup.alpha = 1f;
             Debug.Log($"[UI] frame={Time.frameCount} event=tutorial_camera result=restored", this);
         }
 

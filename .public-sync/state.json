@@ -35,7 +35,8 @@
     "789ab3b8-5001-4799-824d-808e40389638",
     "fe49c802-851a-41a7-9a3a-5e13e5455888",
     "8c2160af-cd16-45db-86bb-0db0ffbee707",
-    "d706e0a2-75f0-4113-b922-f52ec4bbeeb8"
+    "d706e0a2-75f0-4113-b922-f52ec4bbeeb8",
+    "b6874173-95b3-4708-ae46-42f8205c45fd"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
@@ -57,7 +58,7 @@
     "Docs/Research/Review_Source_Index.md": "8745bee4f5e9d6e824b8927e63e696fcd168710c",
     "Docs/Research/Storage_And_Coop_Feasibility.md": "82e75be95a4d3dd714d371fd088171a4f463bb32",
     "Docs/Research/User_Feedback.md": "17a01ccffc4581332eaee30dd09174489fd82db6",
-    "Docs/Test/Android_Test_Plan.md": "beef07e053473cc8de76ec151cc4b0fe2416612c",
+    "Docs/Test/Android_Test_Plan.md": "d52130babb5bda017e7a8e595b6a7d5028cc6599",
     "Docs/Test/Logs/2026-11-05_documentation.md": "8d0181e16530d9475238b842a0a45d75a3d7b2e4",
     "Docs/Test/Logs/2026-11-06_public-sync.md": "50eadce38e0c7f3a0ab95789f3e8ab2c375386c1",
     "Docs/Test/Logs/README.md": "40912a396671f3e5407d307b07f8cf44f45183e3",

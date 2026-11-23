@@ -12,7 +12,9 @@
 
 <br clear="left" />
 
-숲과 마을을 오가며 포차 영업에 필요한 재료를 수집하고, 손님의 주문에 맞춰 조리하고 서빙합니다. 자정이 되면 영업을 마감하고, 집에서 피로를 회복하며 다음 날을 준비합니다. 영업으로 얻은 골드와 경험치는 음식 강화와 새로운 탐험 지역·레시피 해금에 쓰입니다.
+숲과 마을을 오가며 포차 영업에 필요한 재료를 수집하고, 손님의 주문에 맞춰 조리하고 서빙합니다.  
+자정이 되면 영업을 마감하고, 집에서 피로를 회복하며 다음 날을 준비합니다.  
+영업으로 얻은 골드와 경험치는 음식 강화와 새로운 탐험 지역·레시피 해금에 쓰입니다.
 
 **[프로젝트 상세 소개](https://mjoon31.github.io/mjoon31/projects/ham-pocha/)** · **[프로젝트 자료](https://mjoon31.github.io/mjoon31/projects/ham-pocha/#resources)** · **[개발 위키](https://github.com/mjoon31/ham-pocha/wiki)**
 
@@ -34,6 +36,8 @@
 
 ## AI 협업과 검수
 
-게임의 방향과 검수 기준은 제가 정하고, AI에는 구현과 검사를 맡겼습니다. Codex 대화를 역할별로 나누고, `AGENTS.md`와 작업별 지침에 참고할 문서와 수정 범위를 정리했습니다. 공용 메모와 Git 변경 내역을 확인해 중복 작업을 줄였으며, 직접 플레이한 결과와 후속 수정은 이슈와 커밋에 남겼습니다.
+게임의 방향과 검수 기준은 제가 정하고, AI에는 구현과 검사를 맡겼습니다.  
+Codex 대화를 역할별로 나누고, `AGENTS.md`와 작업별 지침에 참고할 문서와 수정 범위를 정리했습니다.  
+공용 메모와 Git 변경 내역을 확인해 중복 작업을 줄였으며, 직접 플레이한 결과와 후속 수정은 이슈와 커밋에 남겼습니다.
 
 [영업 흐름](https://github.com/mjoon31/ham-pocha/wiki/Core-Loop-and-Business) · [시스템 아키텍처](https://github.com/mjoon31/ham-pocha/wiki/System-Architecture) · [AI 구현과 변경 관리](https://github.com/mjoon31/ham-pocha/wiki/AI-Implementation-Management) · [검증 현황](https://github.com/mjoon31/ham-pocha/wiki/Validation-and-Status)

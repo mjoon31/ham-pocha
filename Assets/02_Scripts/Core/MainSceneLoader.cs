@@ -14,21 +14,27 @@ namespace HamPocha.Core
         private bool _lostFocus;
         private bool _wasPaused;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void ApplyStartupFrameRate()
+        {
+            ApplyFrameRate("startup", null);
+        }
+
         private void Awake()
         {
             // 상태 로그는 유지하되 일반 정보 로그의 호출 스택 생성 비용은 줄인다.
             // Warning/Error/Exception의 스택 설정은 바꾸지 않는다.
             if (!Application.isEditor) Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
-            ApplyFrameRate("main_awake");
+            ApplyFrameRate("main_awake", this);
         }
 
-        private void ApplyFrameRate(string reason)
+        private static void ApplyFrameRate(string reason, Object context)
         {
             int previous = Application.targetFrameRate;
             Application.targetFrameRate = 60;
 
             // 목표 설정과 기기의 표시 조건을 구분해서 기록한다. 실측 FPS는 아니다.
-            Debug.Log($"[Performance] frame={Time.frameCount} event=frame_rate result=configured reason={reason} previous={previous} target={Application.targetFrameRate} refresh_hz={Screen.currentResolution.refreshRateRatio.value:F2} render_interval={OnDemandRendering.renderFrameInterval}", this);
+            Debug.Log($"[Performance] frame={Time.frameCount} event=frame_rate result=configured reason={reason} previous={previous} target={Application.targetFrameRate} refresh_hz={Screen.currentResolution.refreshRateRatio.value:F2} render_interval={OnDemandRendering.renderFrameInterval}", context);
         }
 
         private void OnApplicationFocus(bool hasFocus)
@@ -42,7 +48,7 @@ namespace HamPocha.Core
             if (!_lostFocus) return;
 
             _lostFocus = false;
-            ApplyFrameRate("focus_returned");
+            ApplyFrameRate("focus_returned", this);
         }
 
         private void OnApplicationPause(bool isPaused)
@@ -56,7 +62,7 @@ namespace HamPocha.Core
             if (!_wasPaused) return;
 
             _wasPaused = false;
-            ApplyFrameRate("app_resumed");
+            ApplyFrameRate("app_resumed", this);
         }
 
         private IEnumerator Start()

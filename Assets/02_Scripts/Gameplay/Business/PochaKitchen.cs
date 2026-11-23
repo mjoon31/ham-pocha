@@ -114,9 +114,11 @@ namespace HamPocha.Gameplay
         private Transform MarketPoint => _market == null ? null : _market.InteractionPoint;
         internal Camera InteriorCamera => _insideCamera;
         internal RectTransform TutorialViewTarget => _hud?.TutorialViewTarget;
+        internal bool IsLockNoticeOpen => _hud != null && _hud.IsLockNoticeOpen;
         internal RectTransform TutorialWheelTarget => _hud?.TutorialWheelTarget(FirstBusinessWheelItem());
         internal Transform TutorialOutdoorCooker => _outdoor[0];
         internal Transform TutorialExit => _exitMat != null ? _exitMat.transform : null;
+        internal Transform TutorialMonitorVisual { get; private set; }
 
         internal Transform TutorialFacility(int lesson)
         {
@@ -327,6 +329,7 @@ namespace HamPocha.Gameplay
             _fridge = root.Find("Fridge");
             _food = root.Find("FoodStorage");
             _monitor = root.Find("Decor/PCMonitorLowPolyToon");
+            TutorialMonitorVisual = _monitor != null ? _monitor.Find("Model") : null;
             _exitMat = root.Find("Decor/ExitMat")?.GetComponent<BoxCollider>();
             Transform player = root.Find("InteriorPlayer");
             _insideFloor = root.Find("KitchenFloor")?.GetComponent<BoxCollider>();
@@ -536,7 +539,7 @@ namespace HamPocha.Gameplay
             }
             if (!IsOpen && TutorialUi.Current != null && TutorialUi.Current.IsIntroducingPocha && !HasOpeningStock())
             {
-                NotifyLocked("아직 재료가 없어요. 숲에서 재료를 모아 오세요.", "tutorial_opening_ingredients_missing");
+                NotifyLocked("아직 재료가 없어요. 숲에서 재료를 모아 오세요.", "tutorial_opening_ingredients_missing", missingIngredients: true);
                 TutorialUi.Current.OnIntroMonitorUsed();
                 return;
             }
@@ -575,7 +578,7 @@ namespace HamPocha.Gameplay
             bool open = IsOpen;
             if (!open && !HasOpeningStock())
             {
-                NotifyLocked("재료가 부족해요. 냉장고에 재료를 보관해 주세요.", "opening_ingredients_missing");
+                NotifyLocked("재료가 부족해요. 냉장고에 재료를 보관해 주세요.", "opening_ingredients_missing", missingIngredients: true);
                 return;
             }
             bool success = open ? _loader.TryStopBusiness(out message) : _loader.TryStartBusiness(_market, out message);
@@ -715,7 +718,7 @@ namespace HamPocha.Gameplay
             bool accepted = Stock.TryQueueSkewer(slot, menu, out string message, out bool missingIngredients);
             if (missingIngredients)
             {
-                NotifyLocked(message, "outdoor_ingredients_missing");
+                NotifyLocked(message, "outdoor_ingredients_missing", missingIngredients: true);
                 return;
             }
             NotifyResult(accepted, message, message, "outdoor_cooking_queue");
@@ -1669,10 +1672,10 @@ namespace HamPocha.Gameplay
             _loader.SetUiOpen(_hud, visible);
         }
 
-        private void NotifyLocked(string text, string reason, bool facility = false)
+        private void NotifyLocked(string text, string reason, bool facility = false, bool missingIngredients = false)
         {
             Message = text;
-            _hud.ShowLockedNotice(text, facility);
+            _hud.ShowLockedNotice(text, facility, missingIngredients);
             Debug.Log($"[Gameplay] event=pocha_action result=rejected reason={reason}", this);
         }
 

@@ -57,6 +57,7 @@ namespace HamPocha.UI
         private bool _travelNotice;
         private bool _portalNotice;
         private TutorialInputMask _mask;
+        private bool _restrictInput;
         private Image _shade;
         private TutorialButtonFocus _buttonFocus;
         private TutorialTouch _joystickTouch;
@@ -118,6 +119,8 @@ namespace HamPocha.UI
             !State.VisitedFirstForest && (State.ConfirmedGuideSteps & (1 << 8)) == 0;
         internal bool IsIntroducingPocha => _root != null && State != null && (State.Step == 4 || State.Step == 5);
         internal bool IsPracticingHomePlacement => _root != null && State != null && State.Step == 0 && State.HomeLesson == 2;
+        internal bool BlocksFloatingJoystick => _mask != null && _mask.isActiveAndEnabled && _mask.ExclusiveUi &&
+            _mask.AllowedUi != _input.TutorialJoystick;
         internal Transform NavigationTarget => _root != null && _root.activeInHierarchy && !_panning &&
             !_guide.IsOpen && _uiTarget == null ? _worldTarget : null;
         internal string NavigationMarker
@@ -983,12 +986,26 @@ namespace HamPocha.UI
             bool explanation = _guide.IsOpen && _next.gameObject.activeSelf;
             bool outdoorTour = State != null && State.Step == 20 && State.ClosingLesson >= 2 && State.ClosingLesson <= 4;
             if (_clock != null) _clock.SetTutorialPaused(explanation || outdoorTour);
-            _mask.AllowedUi = explanation ? _next.GetComponent<RectTransform>() : _uiTarget;
+            _restrictInput = restrict;
+            UpdateInputMask(FocusedControl(explanation), explanation);
+            _loader.SetTutorialMovementBlocked(blockMovement);
+        }
+
+        private RectTransform FocusedControl(bool explanation)
+        {
+            return !explanation && !_panning && _uiTarget != null && _uiTarget.gameObject.activeInHierarchy ? _uiTarget : null;
+        }
+
+        private void UpdateInputMask(RectTransform control, bool explanation)
+        {
+            if (Debug.isDebugBuild && (_mask.ExclusiveUi != (control != null) || control != null && _mask.AllowedUi != control))
+                Debug.Log($"[UI] event=tutorial_input_focus result={(control != null ? "restricted" : "released")} target={control?.name}", this);
+            _mask.ExclusiveUi = control != null;
+            _mask.AllowedUi = _panning ? null : explanation ? (RectTransform)_next.transform : control;
+            _mask.EditableField = control != null && _loader.NeedsHomeNickname ? _villageHud?.TutorialNicknameInput : null;
             _mask.DismissPanel = null;
             _mask.AllowedWorld = null;
-            if (_panning) { _mask.AllowedUi = null; _mask.AllowedWorld = null; }
-            _mask.gameObject.SetActive(restrict);
-            _loader.SetTutorialMovementBlocked(blockMovement);
+            _mask.gameObject.SetActive(_restrictInput || control != null);
         }
 
         private void LayoutGuide(Rect bounds)
@@ -1320,8 +1337,9 @@ namespace HamPocha.UI
             }
             bool notice = _guide.IsOpen && _next.gameObject.activeSelf;
             Camera eventCamera = _canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : _canvas.worldCamera;
-            RectTransform touchTarget = notice ? null : _uiTarget;
-            bool touch = !_panning && touchTarget != null && touchTarget.gameObject.activeInHierarchy;
+            RectTransform touchTarget = FocusedControl(notice);
+            bool touch = touchTarget != null;
+            UpdateInputMask(touchTarget, notice);
             bool exhibit = notice && !_panning && _exhibit != null;
             bool forestFocus = touch && _forestFocusTarget != null;
             Camera waypointCamera = _waypointCamera != null ? _waypointCamera : _camera;

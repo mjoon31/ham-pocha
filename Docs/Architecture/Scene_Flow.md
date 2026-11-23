@@ -1,6 +1,6 @@
 # 씬과 공통 시스템 연결
 
-2026-11-14 기준. 원본 Unity 프로젝트에서 사용하는 폴더·책임·호출 관계를 기록한다. 공개 저장소에는 이 문서와 승인한 연결 코드만 추출하며, 실행 가능한 Unity 프로젝트 전체를 제공하지 않는다.
+원본 Unity 프로젝트에서 사용하는 폴더·책임·호출 관계를 기록한다. 공개 저장소에는 파일별로 승인된 문서와 코드를 추출한다. 게임 실행에는 별도의 Unity 프로젝트 또는 배포 빌드가 필요하다.
 
 ## 포차 내부·마을 화면 전환 — 2026-11-18
 
@@ -41,13 +41,43 @@ flowchart TD
 - `SceneTransitionFade`는 검은 화면·대기·입력 차단 표시를 담당한다. 게임 시간과 별개인 전환 시간을 사용한다.
 - Main만 직접 실행하는 개발 흐름과 Title부터 시작하는 계정 저장 흐름을 구분한다.
 
+## 첫 영업일의 게임 진행
+
+2026-11-21 KST 기준. 첫 시작부터 다음 날까지 플레이어 행동과 판정을 담당하는 컴포넌트를 연결했다. 야외 판매는 구역 해금 이후 같은 영업 흐름에 합류한다.
+
+```mermaid
+flowchart TD
+    T[타이틀과 시작 로딩] --> B[MainSceneLoader와 첫 지역 준비]
+    B --> A[TutorialUi가 집·포차·첫 숲 안내]
+    A --> E[숲 입장과 이동]
+    E --> H[HarvestTarget이 채집 결과를 Inventory에 반영]
+    H --> I[KitchenStock이 가방 재료를 공유 냉장고에 입고]
+    I --> O[GameSessionState가 개점 조건 판정]
+    O --> K[PochaKitchen과 KitchenStock이 주문·조리·서빙 처리]
+    K --> M[WorldClock이 자정 도달]
+    M --> C[GameSessionState가 신규 주문을 닫고 수락 주문 처리 대기]
+    C --> S[CookingStation이 영업 마감과 결산 확정]
+    S --> N[집에서 침대 상호작용과 취침]
+    N --> D[GameSessionState가 회복 처리하고 WorldClock이 06시로 이동]
+    D --> E
+```
+
+| 구간 | 원본 코드와 책임 |
+|---|---|
+| 진입·안내 | MainSceneLoader는 시작 연결을 맡고, TutorialUi는 실제 게임 상태를 확인해 안내를 전환한다. 인증과 이어하기에서 받은 시작 조건은 기존 초기화 경로로 전달된다. [MainSceneLoader](../../Assets/02_Scripts/Core/MainSceneLoader.cs) · [TutorialUi](../../Assets/02_Scripts/UI/Tutorial/TutorialUi.cs) |
+| 채집·입고 | HarvestTarget은 획득 가능 여부와 수량을 처리하고 Inventory에 반영한다. KitchenStock은 모은 재료를 공유 냉장고로 옮겨 조리에서 사용한다. [HarvestTarget](../../Assets/02_Scripts/Gameplay/Exploration/HarvestTarget.cs) · [Inventory](../../Assets/02_Scripts/Gameplay/Inventory/Inventory.cs) · [KitchenStock](../../Assets/02_Scripts/Gameplay/Business/KitchenStock.cs) |
+| 주문·조리·서빙 | PochaKitchen은 플레이어 상호작용과 실내 주문을 처리한다. KitchenStock은 손에 든 재료·음식, 재료 투입과 조리 상태를 관리한다. 서빙 결과는 CookingStation에 기록된다. [PochaKitchen](../../Assets/02_Scripts/Gameplay/Business/PochaKitchen.cs) · [CookingStation](../../Assets/02_Scripts/Gameplay/Business/CookingStation.cs) |
+| 마감·결산·수면 | WorldClock과 GameSessionState가 영업일과 마감 경계를 결정한다. 자정 이후 수락 주문 처리가 끝나면 CookingStation이 영업일 결산을 확정한다. 취침 완료는 GameSessionState를 통해 다음 영업일의 06:00을 준비한다. [WorldClock](../../Assets/02_Scripts/Core/Time/WorldClock.cs) · [GameSessionState](../../Assets/02_Scripts/Gameplay/Session/GameSessionState.cs) |
+
+플레이어가 낮에 수동 마감하면 결산으로 이동하며, 취침은 밤에 할 수 있다. 기존 진행을 이어가는 경우 저장 복원 결과가 첫 지역과 진행 상태를 정한다. 최초 안내는 해당 계정의 진행 상태를 기준으로 처리한다. [튜토리얼 흐름](Tutorial_Flow.md) · [자정과 수면 검증](../Test/Logs/2026-11-20_daily-gameplay.md) · [포차 마감 검증](../Test/Logs/2026-11-21_pocha-close-and-outdoor-queue.md)
+
 ## 원본 코드
 
 - [MainSceneLoader](../../Assets/02_Scripts/Core/MainSceneLoader.cs): 시작 연결과 저장 복원 진입 요청.
 - [SceneRegion](../../Assets/02_Scripts/Core/SceneRegion.cs): 지역 루트와 도착점 조회.
 - [SceneTransitionFade](../../Assets/02_Scripts/UI/SceneTransitionFade.cs): 전환 표시와 입력 차단.
 
-위 링크는 비공개 원본에서 실제 파일을 가리키며 공개 추출에서는 대응하는 원본 `Assets/` 경로로 연결된다. 원본 C#을 공개용으로 다시 작성하거나 내부 구현을 빈 코드로 바꾸지 않는다. 참조하는 일부 타입의 구현은 공개 대상 밖이므로 이 세 파일만으로 독립 컴파일·실행할 수 있다는 의미는 아니다.
+위 링크는 비공개 원본에서 실제 파일을 가리키며 공개 추출에서는 대응하는 원본 `Assets/` 경로로 연결된다. 원본 C#을 공개용으로 다시 작성하거나 내부 구현을 빈 코드로 바꾸지 않는다. 위 시작 연결 코드 3개와 첫 영업일의 게임플레이 코드 8개는 각 메서드의 호출과 책임을 읽는 자료다. 인증·저장, 씬 전환 정책, 콘텐츠 정의와 Unity 참조 에셋은 비공개 구현에 의존하므로 독립 컴파일·실행에는 별도 프로젝트 구성이 필요하다.
 
 ## 공개 범위와 검증
 

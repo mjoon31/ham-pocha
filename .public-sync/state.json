@@ -40,7 +40,8 @@
     "441defc3-4125-485e-b11a-68bfb046a96d",
     "50b3a765-4bd3-4872-ab72-9ae398957867",
     "6d709528-f081-4085-b7bc-5fc5ea9e06b4",
-    "2a8fc2eb-3528-4235-9f34-1450bbee1f6a"
+    "2a8fc2eb-3528-4235-9f34-1450bbee1f6a",
+    "c5344dda-2b6a-46c7-9ad6-bda33e9fe940"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
@@ -74,7 +75,7 @@
     "Docs/Workflow/Collaboration_Log.md": "34b738cb7121c3bff6b768b493f6d19c041a71c0",
     "Docs/Workflow/Daily_Report_Template.md": "5f58a05ccfd71697b35ca657a2696706485c9f78",
     "Docs/Workflow/Development_Flow.md": "3ddd7cc96231e747267a2150987db655e4dc2c90",
-    "Docs/Architecture/Scene_Flow.md": "b265cc995d8e23eb04fed7b6165bffe0f051e447",
+    "Docs/Architecture/Scene_Flow.md": "68b280733daec4c4a7555878bd94506110768252",
     "Docs/Rules/Project_Structure.md": "09d5bde507cd1b8d2c1daec05d2d198c38a1ec07",
     "Source/Core/MainSceneLoader.cs": null,
     "Source/Core/SceneRegion.cs": null,
@@ -172,6 +173,19 @@
     "Docs/Git/Commit_Template.md": "87fdc1b10dd6a13c4c59bdd21c75140e1e628046",
     "Docs/Git/Public_Sync_Workflow.md": "02879fa423b203d0a1b203b11e3060bb83817b20",
     "Docs/Rules/Development_Records_Rules.md": "ba5f50e071b6a5357f27380dfd2a38fc07572e7a",
-    "Docs/Rules/Test_Rules.md": "6c61ff15a4e233db08c726f1ad54e8a4a4332e29"
+    "Docs/Rules/Test_Rules.md": "6c61ff15a4e233db08c726f1ad54e8a4a4332e29",
+    "Assets/02_Scripts/Core/Time/WorldClock.cs": "558ef9039d5e5bf5aeb7f0947dbca46a05aa2de9",
+    "Assets/02_Scripts/Gameplay/Business/CookingStation.cs": "ea3dcf8cfcab91ab53af8e3dfa298160bd1f9852",
+    "Assets/02_Scripts/Gameplay/Business/KitchenStock.cs": "21b4f5ee5097fd5d25db9c96cc9c4e2336d47165",
+    "Assets/02_Scripts/Gameplay/Business/PochaKitchen.cs": "f83a5cbc4489d73ddaf83f3acf418037349afe6f",
+    "Assets/02_Scripts/Gameplay/Exploration/HarvestTarget.cs": "613d52bea45d315fe52ad6983f4951c97c73c08a",
+    "Assets/02_Scripts/Gameplay/Inventory/Inventory.cs": "03397aad4b849b542aa969fdb1ad0b0d6412d0ed",
+    "Assets/02_Scripts/Gameplay/Session/GameSessionState.cs": "310e7b2a7126af960fb26b27aaebd8c316735598",
+    "Assets/02_Scripts/UI/Tutorial/TutorialUi.cs": "a3d610608fa706cea15ab439bc6639213b473677",
+    "Docs/Architecture/Tutorial_Flow.md": "ea4e06e8339bdefc41c1d3ad1130115245dec7a0",
+    "Docs/Issue_Records/Records/IR-20261117-004_business-rework.md": "1eedb085662c923569391c6f3a02d563810de435",
+    "Docs/Test/Logs/2026-11-16_tutorial.md": "10448e40b466ac4323bb7a0a0fa20401df2f8db4",
+    "Docs/Test/Logs/2026-11-20_daily-gameplay.md": "3a0b4c1f8bfd4a08359b96e914ba9aab38466e0e",
+    "Docs/Test/Logs/2026-11-21_pocha-close-and-outdoor-queue.md": "a853ce230f68aa0266676bb1a3251f7bf424b898"
   }
 }

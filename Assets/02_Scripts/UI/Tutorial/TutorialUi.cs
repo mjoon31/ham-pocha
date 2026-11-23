@@ -28,10 +28,14 @@ namespace HamPocha.UI
         private const float EdgeTravel = 18f;
         private const float TouchShadeAlpha = .62f;
         private const float NoticeShadeAlpha = .08f;
+        private const float OverviewSpeed = .85f;
+        private const float OverviewReturnSeconds = .6f;
+        private const float OverviewEdgeInset = .06f;
+        private const float VillageOverviewScale = 1.85f;
         private const int ForestEntryNotice = 1;
         private const string ForestEntryCopy = "1번 숲에서 당근과 빵을 구할 수 있어요. 확인을 누른 뒤 입장하세요.";
         [SerializeField, Min(0.5f)] private float _panSeconds = 3f;
-        [SerializeField, Min(1f)] private float _forestOverviewScale = 1.6f;
+        [SerializeField, Min(1f)] private float _forestOverviewScale = 1.5f;
         [SerializeField, Min(1f)] private float _marketOverviewScale = 1.6f;
         private SceneLoadManager _loader;
         private WorldClock _clock;
@@ -99,12 +103,13 @@ namespace HamPocha.UI
         private MinimapHud _minimap;
         private Coroutine _panRoutine;
         private Vector3 _cameraLocal;
-        private Vector3 _panPosition;
         private Vector3 _panFrom;
         private Vector3 _panTo;
         private float _cameraSize;
         private float _panSize;
+        private float _panDuration;
         private float _panStarted;
+        private BoxCollider _panGround;
         private TutorialSaveData State { get { return _station.Progress.Tutorial != null && _station.Progress.Tutorial.Enabled ? _station.Progress.Tutorial : null; } }
         internal bool RequiresForestEntryNotice
         {
@@ -1112,7 +1117,7 @@ namespace HamPocha.UI
                     {
                         _guide.SetVisible(false);
                         // 현재 숲의 지역 루트/지면 중심을 보여주며 시점의 높이는 유지한다.
-                        PanRegion(8, _forestOverviewScale);
+                        PanOverview(8, village: false);
                         return;
                     }
                     text = ForestCollect;
@@ -1254,32 +1259,26 @@ namespace HamPocha.UI
 
         private void PanToWaypoint(int next)
         {
-            if (State.Step == 1) PanRegion(next, _marketOverviewScale);
+            if (State.Step == 1) PanOverview(next, village: true);
             else Pan(_worldTarget == null ? _loader.PlayerBody.position : _worldTarget.position, next);
         }
 
-        private void PanRegion(int next, float minimumScale)
+        private void PanOverview(int next, bool village)
         {
             Transform region = _loader.CurrentRegion.transform;
-            Transform ground = region.Find("Ground");
-            Renderer surface = ground != null ? ground.GetComponentInChildren<Renderer>() : null;
-            Vector3 center = surface != null ? surface.bounds.center : region.position;
-            center.y = _loader.PlayerBody.position.y;
-            float scale = minimumScale;
-            if (surface != null)
+            BoxCollider ground = region.Find("Ground")?.GetComponent<BoxCollider>();
+            Vector3 center = ground != null ? ground.transform.TransformPoint(ground.center) : region.position;
+            if (village)
             {
-                Vector3 extent = surface.bounds.extents;
-                Vector3 horizontal = _camera.transform.right;
-                Vector3 vertical = _camera.transform.up;
-                float halfWidth = Mathf.Abs(horizontal.x) * extent.x + Mathf.Abs(horizontal.z) * extent.z;
-                float halfHeight = Mathf.Abs(vertical.x) * extent.x + Mathf.Abs(vertical.z) * extent.z;
-                float worldSize = Mathf.Max(halfHeight, halfWidth / Mathf.Max(_camera.aspect, .1f)) * 1.15f;
-                scale = Mathf.Max(scale, worldSize / _camera.orthographicSize);
+                Transform pond = region.Find("VillagePark/PondGarden/PondFootprint");
+                if (pond != null) center = pond.position;
+                if (_market != null) center = Vector3.Lerp(_market.transform.position, center, .5f);
             }
-            Pan(center, next, scale);
+            center.y = _loader.PlayerBody.position.y;
+            Pan(center, next, village ? VillageOverviewScale : _forestOverviewScale, ground);
         }
 
-        private void Pan(Vector3 target, int next, float overviewScale = 1f)
+        private void Pan(Vector3 target, int next, float overviewScale = 1f, BoxCollider ground = null)
         {
             if (_panRoutine != null)
             {
@@ -1287,21 +1286,24 @@ namespace HamPocha.UI
                 RestoreCamera();
             }
 
-            _panRoutine = StartCoroutine(PanRoutine(target, next, overviewScale));
+            _panRoutine = StartCoroutine(PanRoutine(target, next, overviewScale, ground));
         }
 
-        private IEnumerator PanRoutine(Vector3 target, int next, float overviewScale)
+        private IEnumerator PanRoutine(Vector3 target, int next, float overviewScale, BoxCollider ground)
         {
             _cameraLocal = _camera.transform.localPosition;
             _cameraSize = _camera.orthographicSize;
             _panSize = _cameraSize * Mathf.Max(1f, overviewScale);
+            _panGround = ground;
+            _panDuration = ground != null ? _panSeconds / OverviewSpeed : _panSeconds;
             _panFrom = _camera.transform.position;
-            _panTo = _panFrom + target - _loader.PlayerBody.position;
+            _panTo = _panFrom + target - (ground != null ? GroundViewCenter(_camera, target.y) : _loader.PlayerBody.position);
             _panStarted = Time.unscaledTime;
             _panning = true;
-            Debug.Log($"[UI] frame={Time.frameCount} event=tutorial_camera result=started step={State.Step} overview_scale={overviewScale}", this);
+            Debug.Log($"[UI] frame={Time.frameCount} event=tutorial_camera result=started step={State.Step} overview_scale={overviewScale} duration={_panDuration:F2}", this);
             _loader.SetTutorialMovementBlocked(true);
-            while (Time.unscaledTime - _panStarted < _panSeconds + 1f && !_loader.IsTransitioning) yield return null;
+            float duration = _panDuration + 1f + (ground != null ? OverviewReturnSeconds : 0f);
+            while (Time.unscaledTime - _panStarted < duration && !_loader.IsTransitioning) yield return null;
             RestoreCamera();
             if (_loader.IsTransitioning)
             {
@@ -1312,6 +1314,29 @@ namespace HamPocha.UI
             if (next == 8) _forestPreviewShown = true;
             if (next == 20 && State.ClosingLesson == 2) _outdoorPreviewShown = true;
             MoveTo(next);
+        }
+
+        private static Vector3 GroundViewCenter(Camera camera, float height)
+        {
+            Ray ray = camera.ViewportPointToRay(new Vector3(.5f, .5f));
+            return ray.GetPoint((height - ray.origin.y) / ray.direction.y);
+        }
+
+        private static float MaximumOverviewSize(Camera camera, BoxCollider ground)
+        {
+            Transform surface = ground.transform;
+            Vector3 top = ground.center + Vector3.up * (ground.size.y * .5f);
+            Vector3 center = surface.InverseTransformPoint(GroundViewCenter(camera, surface.TransformPoint(top).y)) - ground.center;
+            Vector3 forward = camera.transform.forward;
+            Vector3 right = camera.transform.right;
+            Vector3 up = camera.transform.up;
+            // 화면의 가로·세로 단위 벡터를 바닥에 투영한 뒤 회전된 지면 좌표로 비교한다.
+            right = surface.InverseTransformVector((right - forward * (right.y / forward.y)) * camera.aspect);
+            up = surface.InverseTransformVector(up - forward * (up.y / forward.y));
+            Vector3 inner = ground.size * (.5f - OverviewEdgeInset);
+            float x = (inner.x - Mathf.Abs(center.x)) / Mathf.Max(.0001f, Mathf.Abs(right.x) + Mathf.Abs(up.x));
+            float z = (inner.z - Mathf.Abs(center.z)) / Mathf.Max(.0001f, Mathf.Abs(right.z) + Mathf.Abs(up.z));
+            return Mathf.Min(x, z);
         }
 
         private void LateUpdate()
@@ -1330,10 +1355,15 @@ namespace HamPocha.UI
             }
             if (_panning)
             {
-                float t = Mathf.SmoothStep(0, 1, (Time.unscaledTime - _panStarted) / _panSeconds);
-                _panPosition = Vector3.Lerp(_panFrom, _panTo, t);
-                _camera.transform.position = _panPosition;
-                _camera.orthographicSize = Mathf.Lerp(_cameraSize, _panSize, t);
+                float elapsed = Time.unscaledTime - _panStarted;
+                float t = Mathf.SmoothStep(0, 1, elapsed / _panDuration);
+                if (_panGround != null && elapsed > _panDuration + 1f)
+                    t = Mathf.SmoothStep(1, 0, (elapsed - _panDuration - 1f) / OverviewReturnSeconds);
+                _camera.transform.position = Vector3.Lerp(_panFrom, _panTo, t);
+                float size = Mathf.Lerp(_cameraSize, _panSize, t);
+                if (_panGround != null)
+                    size = Mathf.Min(size, Mathf.Max(_cameraSize, MaximumOverviewSize(_camera, _panGround)));
+                _camera.orthographicSize = size;
             }
             bool notice = _guide.IsOpen && _next.gameObject.activeSelf;
             Camera eventCamera = _canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : _canvas.worldCamera;
@@ -1561,6 +1591,7 @@ namespace HamPocha.UI
             }
 
             _panRoutine = null;
+            _panGround = null;
             Debug.Log($"[UI] frame={Time.frameCount} event=tutorial_camera result=restored", this);
         }
 

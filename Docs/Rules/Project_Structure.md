@@ -46,7 +46,7 @@ Assets/
 
 - 모듈·asmdef 도입은 ADR에 책임과 의존 방향을 정한 뒤 필요한 범위에만 적용한다. 빈 아키텍처부터 만들지 않는다.
 - 패키지가 자동 관리하는 `Settings`, `TextMesh Pro` 등의 폴더는 근거 없이 이동하지 않는다. 렌더링은 URP 카툰풍을 채택했으며 설정은 Assets/Rendering에서 관리한다. Addressables·다국어 패키지 추가는 별도 결정이다.
-- 현재 샘플씬은 `Assets/01_Scenes/SampleScene.unity`, 모델 확인씬은 `HamsterPosePreview.unity`다. 플레이어 프리팹·모델·재질·이미지는 각 분류의 `Characters/Player/` 아래에 둔다. 추가 이동 시 `.meta` GUID와 씬/프리팹 참조를 보존한다.
+- 현재 샘플씬은 `Assets/01_Scenes/SampleScene.unity`, 애니메이션 미리보기 씬은 `AnimationPreview.unity`다. 플레이어 프리팹·모델·재질·이미지는 각 분류의 `Characters/Player/` 아래에 둔다. 추가 이동 시 `.meta` GUID와 씬/프리팹 참조를 보존한다.
 
 ## Gameplay 실제 구조 — 2026-11-14
 

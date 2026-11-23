@@ -4,9 +4,9 @@
 
 ## 읽는 순서
 
-1. 루트 지침 (공개 제외) → 현재 상태 (공개 제외)
-2. [개발 흐름](Workflow/Development_Flow.md) → 일정 (공개 제외)
-3. 작업별 규칙 → 해당 기획·설계 → 실제 기록
+1. 루트 지침 (공개 제외)과 이번 작업에 적용되는 필수 규칙을 확인한다.
+2. 관련 기획·설계·코드와 실제 결정·검증 기록을 찾아 읽는다. 현황이 필요하면 현재 요약 (공개 제외)에서 해당 기능이나 검수 범위를 확인한다.
+3. 운영 절차와 날짜가 필요하면 [개발 흐름](Workflow/Development_Flow.md)과 일정 (공개 제외)을 확인한다.
 4. 모델·재질·팔레트·조명 작업은 시각 일관성 규칙 (공개 제외)에서 현행 기준과 생성·수정 조건을 확인한다.
 5. 게임 UI 패널·HUD·안내 작업은 UI 일관성 규칙 (공개 제외)에서 공용 원본과 생성·수정 조건을 확인한다.
 
@@ -14,7 +14,7 @@
 |---|---|
 | `Rules/` | 조사 (공개 제외), 기획 (공개 제외), 기술 선택 (공개 제외), [폴더](Rules/Project_Structure.md), 코드 (공개 제외), 로그 (공개 제외), [테스트](Rules/Test_Rules.md), 앱 버전·빌드·APK 원본 (공개 제외), 모바일 성능 (공개 제외), [개발 기록](Rules/Development_Records_Rules.md) |
 | `Research/` | 접근 진단 (공개 제외), [시장조사](Research/Market_Research.md), 한국 리뷰 20건 (공개 제외), [협동 3개·솔로 3개](Research/Concept_Comparison.md), 운영 후속 조사·채택 (공개 제외), 시장조사와 기획 선택 (공개 제외) |
-| `Planning/` | 현행 GDD v2.8 (공개 제외), 영업 개편·비용 시험값 (공개 제외), 콘텐츠·해금 (공개 제외), Cuisineer 참고 (공개 제외), MVP (공개 제외), 기본 햄스터 모델 (공개 제외) |
+| `Planning/` | 현행 GDD (공개 제외), 영업 개편·비용 시험값 (공개 제외), 콘텐츠·해금 (공개 제외), Cuisineer 참고 (공개 제외), MVP (공개 제외), 기본 햄스터 모델 (공개 제외) |
 | `Decisions/` | 게임 선정 (공개 제외), 결정 목록 (공개 제외) |
 | `Editor_Tools/` | 사용 안내 목록·재사용/갱신 규칙 (공개 제외), [Save ID](Editor_Tools/SaveIdSetup.md), 안내 양식 (공개 제외) |
 | `Architecture/` | [기술 현황](Architecture/Technical_Baseline.md), 영업 구조 결정 (공개 제외), 현재 콘텐츠/수납/주문 연결 (공개 제외), 튜토리얼 (공개 제외), 계정 전환 (공개 제외), [ADR 양식](Architecture/ADR_Template.md), [PoC 양식](Architecture/PoC_Template.md) |

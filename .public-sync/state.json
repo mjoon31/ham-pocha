@@ -37,14 +37,15 @@
     "8c2160af-cd16-45db-86bb-0db0ffbee707",
     "d706e0a2-75f0-4113-b922-f52ec4bbeeb8",
     "b6874173-95b3-4708-ae46-42f8205c45fd",
-    "441defc3-4125-485e-b11a-68bfb046a96d"
+    "441defc3-4125-485e-b11a-68bfb046a96d",
+    "50b3a765-4bd3-4872-ab72-9ae398957867"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
     "Docs/Architecture/PoC_Template.md": "93b94cb0c0f4ab77bf4d1cc220f27fe871b98d4b",
     "Docs/Architecture/Technical_Baseline.md": "3a1d77f5b7f30167143a6c9a6aaa56dc63eb5cc1",
     "Docs/Issue_Records/Issue_Record_Template.md": "f1babc0e5081c06bfac79aafc6b34f333d938d5f",
-    "Docs/Issue_Records/README.md": "8d6801c3c193a1f4d5465133bf7adafe6aed5dd4",
+    "Docs/Issue_Records/README.md": "24d1d1cfacb1f5219763319274553d9cd9ecfd38",
     "Docs/Issue_Records/Records/IR-20261105-001_commit-workflow.md": "959aa42b476a89da14bf1673e9196d130acf03ab",
     "Docs/Issue_Records/Records/IR-20261105-002_mobile-concept-research.md": "472cda24f3744cdb0aae6654be1abade5d219348",
     "Docs/Issue_Records/Records/IR-20261106-001_project-rename.md": "9d9946b2d21919e38f34a2d995717888804c6848",

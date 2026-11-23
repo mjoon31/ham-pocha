@@ -42,8 +42,8 @@
 
 ## AI 협업과 검수
 
-게임의 방향과 검수 기준은 제가 정하고, AI에는 구현과 검사를 맡겼습니다.  
-Codex 대화를 역할별로 나누고, `AGENTS.md`와 작업별 지침에 참고할 문서와 수정 범위를 정리했습니다.  
-공용 메모와 Git 변경 내역을 확인해 중복 작업을 줄였으며, 직접 플레이한 결과와 후속 수정은 이슈와 커밋에 남겼습니다.
+게임의 방향과 검수 기준은 직접 정하고, AI에는 구현과 검사를 맡겼습니다.  
+Codex 대화를 역할별 기능 단위로 나누고, `AGENTS.md`와 작업별 지침에 참고할 문서와 수정 범위를 정리했습니다.  
+작업별로 제약 기록과 공용 메모를 확인해 중복 작업을 줄였으며, 반복 되는 작업은 기능별로 에디터를 제작해서 사용하며 진행했습니다.
 
 [영업 흐름](https://github.com/mjoon31/ham-pocha/wiki/Core-Loop-and-Business) · [시스템 아키텍처](https://github.com/mjoon31/ham-pocha/wiki/System-Architecture) · [AI 구현과 변경 관리](https://github.com/mjoon31/ham-pocha/wiki/AI-Implementation-Management) · [검증 현황](https://github.com/mjoon31/ham-pocha/wiki/Validation-and-Status)

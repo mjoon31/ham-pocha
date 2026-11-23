@@ -120,6 +120,14 @@ namespace HamPocha.UI
         private float _panDuration;
         private float _panStarted;
         private BoxCollider _panGround;
+        private Bounds _panMarketBounds;
+        private bool _hasPanMarketBounds;
+        private RectTransform _secondCursor;
+        private Button _skipButton;
+        private RectTransform _skipCard;
+        private PanelMotion _skipDialog;
+        private const string SkipCopy = "튜토리얼을 진행하지 않으면 보상을 받을 수 없어요\n그래도 진행을 넘기시려면 확인 버튼을 누르세요\n안내를 다시 보고 싶으면 메뉴 도움말에서 확인할 수 있어요";
+        internal bool ShowsVillageOverview => _panning && _region == SceneType.Village && _panGround != null;
         private TutorialSaveData State { get { return _station.Progress.Tutorial != null && _station.Progress.Tutorial.Enabled ? _station.Progress.Tutorial : null; } }
         internal bool RequiresForestEntryNotice
         {
@@ -258,7 +266,7 @@ namespace HamPocha.UI
         private const string GrowthScrollTip = "성장 목록을 아래로 내려 야시장 항목을 찾아보세요.";
         private const string HomeAtMidnightTip = "자정이 됐어요. 집으로 돌아가 잠을 자 보세요.";
         private const string BedRecoveryTip = "이제 잠을 자서 피로를 회복할 수 있어요.";
-        private const string FinishTip = "튜토리얼을 완료했어요! 보상으로 100골드를 받았어요.";
+        private const string FinishTip = "튜토리얼을 완료했어요!";
         private const string HelpTip = "지금까지 튜토리얼로 알아본 게임 조작법은 / 메뉴 버튼을 눌러서 도움말에서 확인할 수 있어요";
         private static readonly string[] FacilityTips =
         {
@@ -307,8 +315,6 @@ namespace HamPocha.UI
             inputSurface.color = Color.clear;
             inputSurface.canvasRenderer.cullTransparentMesh = false;
             _mask = shield.gameObject.AddComponent<TutorialInputMask>();
-            if (Application.isEditor || Debug.isDebugBuild)
-                _mask.ContentTestButton = _canvas.transform.Find("HudSafeArea/ContentTestButton") as RectTransform;
             _mask.WorldCamera = _camera;
             RectTransform shade = CreateRect("FocusShade", root, Vector2.zero, Vector2.zero, Vector2.zero);
             shade.anchorMax = Vector2.one;
@@ -358,9 +364,92 @@ namespace HamPocha.UI
             if (cursor != null)
             {
                 _cursor = HudLayout.Icon("GuideCursor", root, Vector2.zero, Vector2.one * CursorSize, cursor).rectTransform;
+                _secondCursor = HudLayout.Icon("SecondGuideCursor", root, Vector2.zero, Vector2.one * CursorSize, cursor).rectTransform;
+                _secondCursor.gameObject.SetActive(false);
                 _cursor.gameObject.SetActive(false);
             }
             else Debug.LogWarning("[UI] event=tutorial_marker result=unavailable reason=missing_cursor_sprite", this);
+            BuildSkipControls(root, skin);
+        }
+
+        private void BuildSkipControls(RectTransform root, UiSkin skin)
+        {
+            RectTransform control = HudLayout.Create("SkipTutorial", root, new Vector2(1, .5f),
+                new Vector2(-205f, 0f), Vector2.one * UiSkin.PrimaryHudButtonSize);
+            Image face = control.gameObject.AddComponent<Image>();
+            _skipButton = control.gameObject.AddComponent<Button>();
+            _skipButton.targetGraphic = face;
+            UiSkin.SetBlankControl(face, skin?.BlankControl);
+            UiSkin.SetControlIcon(face, skin?.TutorialSkipIcon);
+            _skipButton.onClick.AddListener(OpenSkipDialog);
+            Sfx.BindTouch(_skipButton);
+            control.gameObject.SetActive(false);
+
+            RectTransform overlay = HudLayout.Create("SkipTutorialOverlay", root, Vector2.zero, Vector2.zero, Vector2.zero);
+            overlay.anchorMax = Vector2.one;
+            _skipCard = HudLayout.Create("SkipTutorialCard", overlay, Vector2.one * .5f, Vector2.zero, new Vector2(980, 428));
+            RectTransform content = DialogPanel.AddContent(_skipCard, "튜토리얼 넘기기", expandHeader: true);
+            Text copy = Label("Copy", content, Vector2.one * .5f, new Vector2(0, 45), new Vector2(840, 188));
+            copy.text = SkipCopy;
+            copy.fontSize = UiSkin.PanelLabelSize;
+            copy.alignment = TextAnchor.MiddleCenter;
+            copy.color = UiSkin.Ink;
+            copy.resizeTextForBestFit = false;
+            BuildSkipDialogButton(content, "Confirm", "확인", -150f, skin?.GreenButton, ConfirmSkipTutorial);
+            BuildSkipDialogButton(content, "Cancel", "취소", 150f, skin?.BlueButton, CloseSkipDialog);
+            _skipDialog = PanelMotion.Attach(overlay.gameObject, _skipCard, onOutside: CloseSkipDialog);
+            _skipDialog.SetImmediate(false);
+        }
+
+        private void BuildSkipDialogButton(RectTransform content, string name, string caption, float x,
+            Sprite artwork, UnityEngine.Events.UnityAction onClick)
+        {
+            RectTransform area = HudLayout.Create(name, content, Vector2.one * .5f, new Vector2(x, -102f), new Vector2(270, 74));
+            Button button = area.gameObject.AddComponent<Button>();
+            button.targetGraphic = area.gameObject.AddComponent<Image>();
+            Label("Caption", area, Vector2.one * .5f, Vector2.zero, new Vector2(240, 56)).text = caption;
+            UiSkin.SetDialogButton(button, artwork);
+            button.onClick.AddListener(onClick);
+            Sfx.BindTouch(button);
+        }
+
+        private bool CanSkipTutorial => State != null && State.Step < 21 && !State.CompletedTutorialSleep &&
+            !_loader.NeedsHomeNickname;
+
+        private void OpenSkipDialog()
+        {
+            if (!CanSkipTutorial || _skipDialog.IsOpen || _loader.IsTransitioning || _loader.IsMenuPaused) return;
+            if (_panRoutine != null) StopCoroutine(_panRoutine);
+            RestoreCamera();
+            _skipDialog.transform.SetAsLastSibling();
+            _skipDialog.SetVisible(true);
+            _clock.SetTutorialPaused(true);
+            _loader.SetTutorialMovementBlocked(true);
+            Debug.Log("[UI] event=tutorial_skip result=prompt_opened", this);
+        }
+
+        private void CloseSkipDialog()
+        {
+            if (!_skipDialog.IsOpen) return;
+            _skipDialog.SetVisible(false);
+            Debug.Log("[UI] event=tutorial_skip result=cancelled", this);
+        }
+
+        private void ConfirmSkipTutorial()
+        {
+            if (!_skipDialog.IsOpen || !CanSkipTutorial) return;
+            _skipDialog.SetImmediate(false);
+            _guide.SetImmediate(false);
+            _openingReminder = false;
+            _interruptNotice = InterruptNotice.None;
+            _skipButton.gameObject.SetActive(false);
+            MoveTo(21);
+            _clock.SetTutorialOpeningHold(false);
+            _clock.SetTutorialSleepHold(false);
+            _clock.SetTutorialPaused(false);
+            _quest.SetVisible(false);
+            _root.SetActive(false);
+            Debug.Log("[Gameplay] event=tutorial_skip result=confirmed reward=none", this);
         }
 
         private bool NoticeClosed
@@ -391,6 +480,7 @@ namespace HamPocha.UI
                 !_loader.IsMenuPaused;
             if (!available)
             {
+                if (_skipDialog.IsOpen) _skipDialog.SetImmediate(false);
                 if (_root.activeSelf)
                 {
                     _guide.SetImmediate(false);
@@ -399,6 +489,18 @@ namespace HamPocha.UI
                 _root.SetActive(false);
                 _loader.SetTutorialMovementBlocked(false);
                 if (_clock != null) _clock.SetTutorialPaused(false);
+                return;
+            }
+
+            bool canSkip = CanSkipTutorial;
+            if (_skipButton.gameObject.activeSelf != canSkip) _skipButton.gameObject.SetActive(canSkip);
+            Rect bounds = HudLayout.ScreenBounds(Screen.safeArea, Screen.width, Screen.height);
+            RectTransform skipControl = (RectTransform)_skipButton.transform;
+            Vector2 skipAnchor = new Vector2(bounds.xMax, bounds.center.y);
+            if (skipControl.anchorMax != skipAnchor) skipControl.anchorMin = skipControl.anchorMax = skipAnchor;
+            if (_skipDialog.IsOpen)
+            {
+                HudLayout.FitPanel(_skipDialog, _skipCard, Vector2.one * .5f, new Vector2(64, 64));
                 return;
             }
 
@@ -510,7 +612,7 @@ namespace HamPocha.UI
             if (state == null || state.Step >= 21 || state.CompletedTutorialSleep ||
                 _session == null || _session.BusinessSequence == 0) return false;
 
-            return state.FirstDayRound is >= 62 and <= 100 ||
+            return state.FirstDayRound is >= 62 and <= 100 or >= 103 and <= 105 ||
                 state.FirstDayRound == 0 && state.Step == 20 && state.ClosingLesson is 5 or 6;
         }
 
@@ -757,9 +859,8 @@ namespace HamPocha.UI
                     PresentLesson(HelpTip);
                     break;
                 default:
-                    PresentLesson(FinishTip + (State.TutorialFurnitureGranted
-                        ? " 가구 창고에서 책상·의자·소파를 한 개씩 확인할 수 있어요."
-                        : " 보상 가구는 창고에 빈 슬롯이 3개 생기면 받을 수 있어요."));
+                    PresentLesson(State.TutorialFurnitureGranted && !State.TutorialRewardQueued ? FinishTip :
+                        FinishTip + " 메뉴의 우편함에서 보상을 받아주세요");
                     break;
             }
         }
@@ -1412,6 +1513,18 @@ namespace HamPocha.UI
             _panFrom = _camera.transform.position;
             _panTo = _panFrom + target - (ground != null ? GroundViewCenter(_camera, target.y) : _loader.PlayerBody.position);
             _panBow = _camera.transform.right * bow;
+            if (ground != null && _panBow == Vector3.zero) LimitForestOverviewZoom();
+            _hasPanMarketBounds = false;
+            if (_panBow != Vector3.zero && _market != null)
+            {
+                foreach (Renderer renderer in _market.GetComponentsInChildren<Renderer>())
+                {
+                    if (!renderer.enabled || renderer.GetComponent<TextMesh>() != null) continue;
+                    if (_hasPanMarketBounds) _panMarketBounds.Encapsulate(renderer.bounds);
+                    else _panMarketBounds = renderer.bounds;
+                    _hasPanMarketBounds = true;
+                }
+            }
             _panStarted = Time.unscaledTime;
             _panning = true;
             Debug.Log($"[UI] frame={Time.frameCount} event=tutorial_camera result=started step={State.Step} overview_scale={overviewScale} duration={_panDuration:F2}", this);
@@ -1451,9 +1564,16 @@ namespace HamPocha.UI
 
         private static float MaximumOverviewSize(Camera camera, BoxCollider ground)
         {
+            return MaximumOverviewSizeAt(camera, ground, camera.transform.position);
+        }
+
+        private static float MaximumOverviewSizeAt(Camera camera, BoxCollider ground, Vector3 cameraPosition)
+        {
             Transform surface = ground.transform;
             Vector3 top = ground.center + Vector3.up * (ground.size.y * .5f);
-            Vector3 center = surface.InverseTransformPoint(GroundViewCenter(camera, surface.TransformPoint(top).y)) - ground.center;
+            Vector3 translation = cameraPosition - camera.transform.position;
+            Vector3 viewCenter = GroundViewCenter(camera, surface.TransformPoint(top).y - translation.y) + translation;
+            Vector3 center = surface.InverseTransformPoint(viewCenter) - ground.center;
             Vector3 forward = camera.transform.forward;
             Vector3 right = camera.transform.right;
             Vector3 up = camera.transform.up;
@@ -1464,6 +1584,33 @@ namespace HamPocha.UI
             float x = (inner.x - Mathf.Abs(center.x)) / Mathf.Max(.0001f, Mathf.Abs(right.x) + Mathf.Abs(up.x));
             float z = (inner.z - Mathf.Abs(center.z)) / Mathf.Max(.0001f, Mathf.Abs(right.z) + Mathf.Abs(up.z));
             return Mathf.Min(x, z);
+        }
+
+        private void LimitForestOverviewZoom()
+        {
+            // 경로 전체에서 가능한 확대 폭을 한 번 정해 재생 중 상한에 닿을 때 속도가 꺾이지 않게 한다.
+            float zoom = _panSize - _cameraSize;
+            for (int i = 1; i <= 32; i++)
+            {
+                float t = i / 32f;
+                float travel = 1f - (1f - t) * (1f - t);
+                Vector3 cameraPosition = Vector3.Lerp(_panFrom, _panTo, travel);
+                float limit = MaximumOverviewSizeAt(_camera, _panGround, cameraPosition);
+                zoom = Mathf.Min(zoom, Mathf.Max(0f, limit - _cameraSize) / t);
+            }
+            _panSize = _cameraSize + zoom;
+        }
+
+        private void KeepMarketAheadOfCamera()
+        {
+            if (!_hasPanMarketBounds) return;
+            Vector3 forward = _camera.transform.forward;
+            Vector3 axis = new Vector3(Mathf.Abs(forward.x), Mathf.Abs(forward.y), Mathf.Abs(forward.z));
+            float nearest = Vector3.Dot(_panMarketBounds.center - _camera.transform.position, forward) -
+                Vector3.Dot(_panMarketBounds.extents, axis);
+            float clearance = _camera.nearClipPlane + .5f - nearest;
+            // 직교 카메라를 시선 축으로만 옮겨 화면 구도는 유지한다.
+            if (clearance > 0f) _camera.transform.position -= forward * clearance;
         }
 
         private void LateUpdate()
@@ -1482,6 +1629,15 @@ namespace HamPocha.UI
                 _confirmFocus?.Show(null, default);
                 return;
             }
+            if (_skipDialog.IsOpen)
+            {
+                InteractionOutline.ShowTutorial(null);
+                _buttonFocus.Show(null, default);
+                _confirmFocus.Show(null, default);
+                HideCursor();
+                if (_secondCursor != null) _secondCursor.gameObject.SetActive(false);
+                return;
+            }
             float noticeAlpha = NoticeShadeAlpha;
             if (_firstDayOutdoorFrame)
             {
@@ -1498,12 +1654,13 @@ namespace HamPocha.UI
                 _camera.transform.position = Vector3.Lerp(_panFrom, _panTo, travel) + _panBow * (4f * t * (1f - t));
                 if (_panBow != Vector3.zero)
                 {
+                    KeepMarketAheadOfCamera();
                     float alpha = Mathf.SmoothStep(1f, 0f, elapsed / PanelMotion.Duration);
                     _guideGroup.alpha = alpha;
                     noticeAlpha *= alpha;
                 }
                 float size = Mathf.Lerp(_cameraSize, _panSize, t);
-                if (_panGround != null)
+                if (_panGround != null && _panBow != Vector3.zero)
                     size = Mathf.Min(size, Mathf.Max(_cameraSize, MaximumOverviewSize(_camera, _panGround)));
                 _camera.orthographicSize = size;
             }
@@ -1522,7 +1679,8 @@ namespace HamPocha.UI
             Transform visual = moving ? WorldVisual(_worldTarget) : null;
             if (forestFocus) visual = _forestFocusTarget.OutlineTarget;
             bool freshGuideGroup = FirstDayRound > 0 && _firstDayWorldGroup != null;
-            bool dimWorld = exhibit || touch && visual != null || freshGuideGroup;
+            bool guidesCarpet = moving && FirstDayRound is 11 or 12;
+            bool dimWorld = exhibit || (touch || guidesCarpet) && visual != null || freshGuideGroup;
             Transform focusTarget = exhibit ? _exhibit : visual;
             Transform[] focusGroup = freshGuideGroup ? _firstDayWorldGroup : null;
             if (focusGroup == null && _forest != null && focusTarget == _forest.TutorialVisual)
@@ -1537,7 +1695,10 @@ namespace HamPocha.UI
             RectTransform confirm = FirstDayRound > 0 ? _firstDaySecond :
                 touch ? KitchenConfirmFocus : null;
             _confirmFocus.Show(confirm, confirm != null ? ScreenRect(confirm, eventCamera) : default);
-            if (touch || visualControl != null && GuidesFirstDayButtonDuringNotice)
+            bool showSecond = _secondCursor != null && confirm != null && confirm.gameObject.activeInHierarchy;
+            if (_secondCursor != null && !showSecond) _secondCursor.gameObject.SetActive(false);
+            if (showSecond) ShowTouchFocus(confirm, eventCamera, _secondCursor);
+            if (touch || visualControl != null && (GuidesFirstDayButtonDuringNotice || showSecond))
             {
                 ShowTouchFocus(visualControl, eventCamera);
                 return;
@@ -1637,7 +1798,7 @@ namespace HamPocha.UI
             _exhibitCamera = camera;
         }
 
-        private void ShowTouchFocus(RectTransform touchTarget, Camera eventCamera)
+        private void ShowTouchFocus(RectTransform touchTarget, Camera eventCamera, RectTransform cursor = null)
         {
             Rect screen = ScreenRect(touchTarget, eventCamera);
             float pulse = CursorPulse(Time.unscaledTime);
@@ -1653,7 +1814,7 @@ namespace HamPocha.UI
             Vector2 aim = screen.center + new Vector2(x * Mathf.Min(screen.width * .22f, reach * .33f),
                 y * Mathf.Min(screen.height * .18f, reach * .14f));
             Vector2 position = aim + approach * (reach * .33f + Mathf.Lerp(3f, 18f, pulse) * _canvas.scaleFactor);
-            ShowCursor(position, -approach, CursorSize, eventCamera);
+            ShowCursor(position, -approach, CursorSize, eventCamera, cursor);
         }
 
         internal static float CursorPulse(float time)
@@ -1667,14 +1828,15 @@ namespace HamPocha.UI
             return local;
         }
 
-        private void ShowCursor(Vector2 screen, Vector2 direction, float size, Camera eventCamera)
+        private void ShowCursor(Vector2 screen, Vector2 direction, float size, Camera eventCamera, RectTransform cursor = null)
         {
+            if (cursor == null) cursor = _cursor;
             Vector2 dimensions = Vector2.one * size;
-            if (_cursor.sizeDelta != dimensions) _cursor.sizeDelta = dimensions;
-            _cursor.gameObject.SetActive(true);
-            _cursor.localPosition = ScreenToLocal((RectTransform)_cursor.parent, screen, eventCamera);
-            _cursor.localRotation = Quaternion.Euler(0, 0, GetCursorAngle(direction, out float thumbScale));
-            _cursor.localScale = new Vector3(thumbScale, 1f, 1f);
+            if (cursor.sizeDelta != dimensions) cursor.sizeDelta = dimensions;
+            cursor.gameObject.SetActive(true);
+            cursor.localPosition = ScreenToLocal((RectTransform)cursor.parent, screen, eventCamera);
+            cursor.localRotation = Quaternion.Euler(0, 0, GetCursorAngle(direction, out float thumbScale));
+            cursor.localScale = new Vector3(thumbScale, 1f, 1f);
         }
 
         internal static float GetCursorAngle(Vector2 direction, out float thumbScale)
@@ -1831,6 +1993,7 @@ namespace HamPocha.UI
         private void OnDisable()
         {
             StopForestDiscoveryCamera(completed: false);
+            _skipDialog?.SetImmediate(false);
             InteractionOutline.ShowTutorial(null);
             _buttonFocus?.Show(null, default);
             _confirmFocus?.Show(null, default);

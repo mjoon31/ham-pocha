@@ -107,6 +107,13 @@ namespace HamPocha.Gameplay
         }
 
         public long GetCount(IngredientType ingredient) => _bag[(int)ingredient];
+
+        internal void ApplyMailboxBag(long[] bag)
+        {
+            Array.Copy(bag, _bag, _bag.Length);
+            Version++;
+        }
+
         public int GetStorageCount(IngredientType ingredient) => _fridge[(int)ingredient];
 
         public int GetTotalCount(IngredientType ingredient)

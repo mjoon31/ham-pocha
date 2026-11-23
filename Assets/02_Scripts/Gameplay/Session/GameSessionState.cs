@@ -405,6 +405,8 @@ namespace HamPocha.Gameplay
             }
 
             CurrentActivity = activity;
+            if (activity == PlayerActivity.Exploration || activity == PlayerActivity.Business)
+                GameplayAnalytics.StartNextActivity();
             _fatigue.SetActivity(activity);
             StateVersion++;
 

@@ -233,7 +233,7 @@ namespace HamPocha.UI
         private const string FirstSale = "첫 실내 서빙을 마쳤어요! 주문한 음식을 건네면 골드와 판매 경험치를 받아요.";
         private const string GrowthMenu = "성장·해금 메뉴를 열어 당근 수프를 강화해보세요.";
         private const string UpgradeTip = "당근 수프의 첫 강화(레벨 1 → 2)는 무료예요.";
-        private const string OutdoorTip = "야외 영업은 햄스터 레벨 5와 5,000골드로 해금할 수 있어요. 야외 시점으로 전환해 둘러볼게요.";
+        private const string OutdoorTip = "야시장은 햄스터 레벨 5와 5,000골드로 해금할 수 있어요. 야외 시점으로 전환해 둘러볼게요.";
         private const string UnlockTip = "세 번째 음식은 당근 수프와 바삭 토스트가 각각 레벨 5여야 해요. 그다음부터는 직전 음식 레벨 10이 필요해요. 해금 비용은 성장 메뉴에서 확인하세요. 재료 숲도 함께 열려요.";
         private const string FinishTip = "튜토리얼을 완료했어요! 보상으로 100골드를 받았어요.";
         private static readonly string[] FacilityTips =
@@ -676,7 +676,7 @@ namespace HamPocha.UI
                     if (!_outdoorPreviewShown && !_panning && kitchen?.TutorialOutdoorCooker != null)
                         Pan(kitchen.TutorialOutdoorCooker.position, 20, _marketOverviewScale);
                     if (_panning) PresentAction(null);
-                    else PresentLesson("해금한 야외 화로는 메뉴를 고르면 자동으로 조리해요. 조리 중 1개와 예약 4개까지 넣을 수 있어요. 완성품은 자동 진열되고 손님들이 구매한 뒤 테이블에서 먹어요.",
+                    else PresentLesson("야시장 운영 중에는 메뉴를 고르면 화로가 자동으로 조리해요. 조리 중 1개와 예약 4개까지 넣을 수 있어요. 완성품은 자동 진열되고 손님들이 구매한 뒤 테이블에서 먹어요.",
                         kitchen?.TutorialOutdoorCooker);
                     break;
                 case 3: PresentLesson("포차 내부로 돌아가 영업을 이어가세요.", _market != null ? _market.transform : null); break;

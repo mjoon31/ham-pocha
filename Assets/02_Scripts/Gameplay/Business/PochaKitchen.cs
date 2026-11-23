@@ -496,7 +496,7 @@ namespace HamPocha.Gameplay
             if (IsInside) { SetView(false, playSound: true); return; }
             if (!CanSwitchView)
             {
-                Notify("포차 앞이나 야외 영업 구역에서 시점을 전환할 수 있어요.", "market_out_of_range");
+                Notify("포차 앞이나 야시장에서 시점을 전환할 수 있어요.", "market_out_of_range");
                 return;
             }
             Enter();
@@ -664,13 +664,13 @@ namespace HamPocha.Gameplay
                     InteractWithCooker(_nearSlot);
                     break;
                 case Target.Outdoor:
-                    if (!OutdoorUnlocked) NotifyLocked("성장 메뉴에서 야외 영업을 해금하세요.", "outdoor_locked", facility: true);
+                    if (!OutdoorUnlocked) NotifyLocked("성장 메뉴에서 야시장을 해금하세요.", "outdoor_locked", facility: true);
                     else if (_nearSlot >= Growth.OutdoorCookers(Sales.Progress))
                         NotifyLocked("성장 메뉴에서 해당 화로를 해금하세요.", "outdoor_cooker_locked", facility: true);
                     else InteractWithOutdoorCooker(_nearSlot);
                     break;
                 case Target.Display:
-                    if (!OutdoorUnlocked) NotifyLocked("성장 메뉴에서 야외 영업을 해금하세요.", "outdoor_display_locked", facility: true);
+                    if (!OutdoorUnlocked) NotifyLocked("성장 메뉴에서 야시장을 해금하세요.", "outdoor_display_locked", facility: true);
                     else OpenWheel(Wheel.Display, 0);
                     break;
                 case Target.Order: InteractWithOrder(_nearSlot); break;
@@ -1183,7 +1183,7 @@ namespace HamPocha.Gameplay
                 OutdoorRecipe recipe = Stock.Skewer(menu);
                 if (recipe == null || !Stock.IsSkewerUnlocked(menu))
                 {
-                    string reason = recipe == null ? "야외 메뉴를 불러올 수 없어요." :
+                    string reason = recipe == null ? "야시장 메뉴를 불러올 수 없어요." :
                         $"숲 {Stock.SkewerForestNumber(recipe)}이 열리면 조리할 수 있어요.";
                     NotifyLocked(reason, "skewer_locked");
                     return;

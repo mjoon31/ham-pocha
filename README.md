@@ -2,48 +2,42 @@
 
 <img src="https://mjoon31.github.io/mjoon31/assets/media/ham-pocha/app-icon.png" alt="햄포차 앱 아이콘" width="140" align="left" />
 
-**3D 탐험·요리·포장마차 경영 게임**
+**3D 탐험 | 요리 | 포장마차 경영**
 
-`Unity 2022.3 LTS` `C#` `Android` `AI` `URP` `Firebase`
+**플랫폼** Android | 가로 화면 | 싱글 플레이
 
-**김명준 · 개인 개발 · AI 협업 · Android 테스트 빌드**
+**기술 스택** Unity 2022.3.62f3 | C# | URP | Firebase
 
-**개발 기간** · 2026.11.05 — 2026.11.22 (계획)
+**개발 인원** 김명준 | 개인 개발 | AI 협업
+
+**담당 역할** 게임 설계 | AI 작업 지시와 검수 | Android 실기기 테스트
+
+**개발 기간** 2026.11.05 — 2026.11.23 | 출시 준비 중
 
 <br clear="left" />
 
-숲과 마을을 오가며 포차 영업에 필요한 재료를 수집하고, 손님의 주문에 맞춰 조리하고 서빙합니다.  
-자정이 되면 영업을 마감하고, 집에서 피로를 회복하며 다음 날을 준비합니다.  
-영업으로 얻은 골드와 경험치는 음식 강화와 새로운 탐험 지역·레시피 해금에 쓰입니다.
+계절 숲에서 모은 재료로 마을의 작은 포차를 운영하는 Android 게임입니다. 손님의 주문을 받아 직접 조리하고 서빙합니다. 장사로 얻은 골드와 경험치로 레시피를 강화하고 새 숲과 야시장을 엽니다.
 
-**[프로젝트 상세 소개](https://mjoon31.github.io/mjoon31/projects/ham-pocha/)** · **[프로젝트 자료](https://mjoon31.github.io/mjoon31/projects/ham-pocha/#resources)** · **[개발 위키](https://github.com/mjoon31/ham-pocha/wiki)**
+[프로젝트 상세 소개](https://mjoon31.github.io/mjoon31/projects/ham-pocha/) | [프로젝트 자료](https://mjoon31.github.io/mjoon31/projects/ham-pocha/#resources) | [AI 협업 과정과 주요 사례](https://github.com/mjoon31/ham-pocha/wiki/AI-Collaboration) | [개발 위키](https://github.com/mjoon31/ham-pocha/wiki)
 
 ## 숲에서 포차까지, 햄스터의 하루
 
-**숲 탐험·재료 수집 → 재료 입고 → 조리·서빙 → 판매·성장 → 마감·수면**
-
-- **계절 숲 탐험**에서는 미니맵으로 출입구와 수집 대상을 확인합니다.  
-  밤에 몬스터가 공격해 오면 채집을 더 이어갈지, 모은 재료를 가지고 돌아갈지 판단합니다.
-- **실내 조리와 서빙**은 공유 냉장고에서 재료를 꺼내 조리대에 넣는 것부터 완성된 음식을 손님에게 직접 건네는 것까지 이어집니다.
-- **야시장 영업**은 화로에서 꼬치를 구워 진열하고 자동으로 판매하는 방식입니다. 판매 수익과 경험치로 음식을 강화하고, 새 메뉴와 화로,  
-  탐험 지역을 엽니다.
-- **집 꾸미기**에서는 창고에 보관한 가구의 위치와 방향을 바꾸고, 벽 마감을 바꿔 공간을 꾸밉니다.
+- **계절 숲**에서 미니맵으로 출입구와 수집 대상을 찾습니다. 밤에 몬스터가 추격하면 재료를 더 모을지, 마을로 돌아갈지 판단합니다.
+- **실내 포차**에서는 냉장고에 입고한 재료를 주문에 맞춰 조리대에 하나씩 넣고, 완성한 음식을 손님에게 직접 전달합니다.
+- **야시장**에서는 화로에 꼬치를 예약합니다. 완성된 꼬치는 자동으로 진열되고, 손님은 구매한 뒤 자리에 앉아 식사합니다.
+- **마감과 휴식**은 이미 받은 주문을 마무리한 뒤 시작합니다. 결산에서 판매 결과를 보고, 집에서 가구를 배치하거나 침대에서 쉬며 다음 날을 준비합니다.
 
 ## 플레이를 받치는 구조
 
-- **씬 전환과 영업 진행.** 공통 시스템이 있는 Main 씬을 유지하고 집·마을·숲을 필요에 따라 불러옵니다.  
-  실내외 영업 중에는 마을과 포차 씬을 함께 두고 카메라와 조작 대상을 전환해, 다른 공간의 조리와 손님 행동도 이어지도록 구성했습니다.
-- **레시피·성장 데이터.** 레시피에 재료와 아이콘을 연결하고 콘텐츠 카탈로그에서 메뉴 해금과 강화를 관리합니다.  
-  조리·메뉴 선택·강화 화면이 같은 데이터를 참조합니다.
-- **탐험과 미니맵.** 이동과 상호작용은 Unity Input System으로 처리합니다.  
-  숲에 다시 들어오면 채집 대상과 몬스터를 재배치하고, 같은 방문의 저장을 이어갈 때는 수집 상태를 복원해 미니맵에도 반영합니다.
-- **가구 배치와 계정별 저장.** 배치 전 격자의 점유와 입구·침대 접근 경로를 확인합니다.  
-  로컬 JSON과 Firebase Authentication·Cloud Firestore를 연결해 계정별 진행을 저장하고, 저장 ID로 주문 상태와 가구 배치를 복원합니다.
+- **씬 전환과 영업 상태.** 공통 시스템은 Main 씬에 두고 집, 마을, 숲을 필요에 따라 불러옵니다. 실내와 야외 사이에서 카메라와 조작 대상을 바꿔도 조리와 손님 행동이 이어집니다.
+- **레시피와 성장.** 메뉴의 재료, 조리 시간, 가격과 아이콘을 ScriptableObject로 관리합니다. 조리, 메뉴 선택, 강화 화면에서 같은 데이터를 사용합니다.
+- **탐험과 미니맵.** 숲을 다시 방문하면 채집물과 몬스터를 재배치합니다. 같은 방문을 이어서 플레이하면 저장한 수집 상태를 복원하고 미니맵에도 반영합니다.
+- **가구 배치와 계정별 저장.** 가구의 격자 점유와 입구 및 침대까지의 접근 경로를 검사합니다. 로컬 JSON과 Firebase Authentication, Cloud Firestore를 연결해 계정별 진행을 저장합니다.
 
 ## AI 협업과 검수
 
-게임의 방향과 검수 기준은 직접 정하고, AI에는 구현과 검사를 맡겼습니다.  
-Codex 대화를 역할별 기능 단위로 나누고, `AGENTS.md`와 작업별 지침에 참고할 문서와 수정 범위를 정리했습니다.  
-작업별로 제약 기록과 공용 메모를 확인해 중복 작업을 줄였으며, 반복 되는 작업은 기능별로 에디터를 제작해서 사용하며 진행했습니다.
+게임 방향과 검수 기준을 직접 정하고, AI에는 대안 비교, 구현, 반복 작업의 도구화와 검사를 맡겼습니다. 작업별로 확정한 기준, 수정한 파일, 확인한 결과를 남겨 후속 검수에 활용했습니다. 공개 동기화, 프리팹 일괄 등록, 대화 배분과 인계는 [협업 사례](https://github.com/mjoon31/ham-pocha/wiki/AI-Collaboration)에서 확인할 수 있습니다.
 
-[영업 흐름](https://github.com/mjoon31/ham-pocha/wiki/Core-Loop-and-Business) · [시스템 아키텍처](https://github.com/mjoon31/ham-pocha/wiki/System-Architecture) · [AI 구현과 변경 관리](https://github.com/mjoon31/ham-pocha/wiki/AI-Implementation-Management) · [검증 현황](https://github.com/mjoon31/ham-pocha/wiki/Validation-and-Status)
+Google Play 비공개 테스트와 출시를 준비하고 있습니다. 빌드별 확인 범위는 [검증 현황](https://github.com/mjoon31/ham-pocha/wiki/Validation-and-Status)에 정리했습니다.
+
+[영업 흐름](https://github.com/mjoon31/ham-pocha/wiki/Core-Loop-and-Business) | [시스템 아키텍처](https://github.com/mjoon31/ham-pocha/wiki/System-Architecture) | [AI 구현과 변경 관리](https://github.com/mjoon31/ham-pocha/wiki/AI-Implementation-Management)

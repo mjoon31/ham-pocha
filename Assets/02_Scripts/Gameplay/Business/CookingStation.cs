@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using HamPocha.Audio;
 using HamPocha.Data;
 using HamPocha.Core;
+using HamPocha.UI;
 using UnityEngine;
 using Unity.Profiling;
 
@@ -21,7 +22,10 @@ namespace HamPocha.Gameplay
         [SerializeField, HideInInspector] private int _mushroomGold = 15;
         [SerializeField, HideInInspector] private int _saleXp = 1;
         private BusinessSaveData _business = new BusinessSaveData();
-        private GrowthSaveData _growth = new GrowthSaveData { Tutorial = new TutorialSaveData { Enabled = true } };
+        private GrowthSaveData _growth = new GrowthSaveData
+        {
+            Tutorial = new TutorialSaveData { Enabled = true, FirstDayRound = 1 }
+        };
         private readonly List<TableOrder> _orders = new List<TableOrder>();
         private readonly List<TableOrder> _occupiedTables = new List<TableOrder>();
         private readonly List<TableOrder> _knownTables = new List<TableOrder>();
@@ -167,7 +171,7 @@ namespace HamPocha.Gameplay
             _jobs.RemoveAt(index);
             Sfx.Play(SfxCue.Pickup);
             _playerInteraction?.PlayInteractionMotion();
-            SetMessage(GetRecipeLabel(_selectedFood) + " 운반 중 · 손님에게 직접 이동해 서빙하세요.");
+            SetMessage(GetRecipeLabel(_selectedFood) + " 운반 중 · 손님에게 직접 이동해 서빙하세요");
             return true;
         }
 
@@ -508,7 +512,7 @@ namespace HamPocha.Gameplay
 
             if (!CanRun || !IsAtMarket() || !_hasSelection || _jobs.Count >= CookingCapacity || !CanPrepareRecipe(_selectedRecipe))
             {
-                SetMessage("조리할 메뉴·원재료·빈 조리대를 확인하세요.");
+                SetMessage("조리할 메뉴·원재료·빈 조리대를 확인하세요");
                 return;
             }
             RecipeData recipe = _catalog.Recipes[(int)_selectedRecipe];
@@ -526,7 +530,7 @@ namespace HamPocha.Gameplay
                 table.Customer == null || table.WaitRemaining <= 0 || !_orders.Contains(table) ||
                 (table.IsTakeaway && !IsFirstTakeaway(table)) || !CanInteractWith(table))
             {
-                SetMessage("수락한 주문의 테이블/손님 가까이에서 서빙하세요. 대상이 겹치면 원하는 쪽을 바라보세요.");
+                SetMessage("수락한 주문의 테이블/손님 가까이에서 서빙하세요. 대상이 겹치면 원하는 쪽을 바라보세요");
                 return false;
             }
             RecipeId delivered = _selectedFood;
@@ -540,6 +544,7 @@ namespace HamPocha.Gameplay
                 table.MarkWrongFood(delivered);
                 table.Customer.LeaveTable();
                 SetMessage("오배송 · 음식 소진/골드·경험치 0");
+                TutorialUi.Current?.OnWrongDelivery();
                 return true;
             }
             Sfx.Play(SfxCue.Happy);
@@ -567,7 +572,22 @@ namespace HamPocha.Gameplay
             if (CanRun) AssignStoredFood();
         }
 
-        public void RecordOrderOutcome(OrderOutcome outcome, int gold = 0, int xp = 0)
+        internal int TodayServedCount => _session.HasOpenedBusinessToday ? ServedCount : 0;
+        internal long TodaySalesGold => _session.HasOpenedBusinessToday ? _business.DailyGold : 0;
+
+        internal int GetTodayMenuCount(int menu)
+        {
+            return _session.HasOpenedBusinessToday && _business.DailyMenuCounts != null &&
+                menu >= 0 && menu < _business.DailyMenuCounts.Length ? _business.DailyMenuCounts[menu] : 0;
+        }
+
+        internal long GetTodayMenuGold(int menu)
+        {
+            return _session.HasOpenedBusinessToday && _business.DailyMenuGold != null &&
+                menu >= 0 && menu < _business.DailyMenuGold.Length ? _business.DailyMenuGold[menu] : 0;
+        }
+
+        public void RecordOrderOutcome(OrderOutcome outcome, int gold = 0, int xp = 0, int menu = -1)
         {
             EnsureStatisticsDay();
             Version++;
@@ -579,6 +599,15 @@ namespace HamPocha.Gameplay
                     _business.SalesXp += xp;
                     _business.DailyGold += gold;
                     _business.DailyXp += xp;
+                    if (menu >= 0 && menu < BusinessSaveData.MenuCount)
+                    {
+                        if (_business.DailyMenuCounts == null || _business.DailyMenuCounts.Length != BusinessSaveData.MenuCount)
+                            _business.DailyMenuCounts = new int[BusinessSaveData.MenuCount];
+                        if (_business.DailyMenuGold == null || _business.DailyMenuGold.Length != BusinessSaveData.MenuCount)
+                            _business.DailyMenuGold = new long[BusinessSaveData.MenuCount];
+                        _business.DailyMenuCounts[menu]++;
+                        _business.DailyMenuGold[menu] += gold;
+                    }
                     if (gold > 0) Sfx.Play(SfxCue.Gold);
                     Debug.Log($"[Gameplay] frame={Time.frameCount} event=sale_reward result=granted gold={gold} xp={ToExperience(xp)} level={Level}", this);
                     break;
@@ -660,6 +689,8 @@ namespace HamPocha.Gameplay
             MissedCount = 0;
             _business.DailyGold = 0;
             _business.DailyXp = 0;
+            _business.DailyMenuCounts = null;
+            _business.DailyMenuGold = null;
         }
 
         public CookingSaveData Capture()
@@ -684,6 +715,12 @@ namespace HamPocha.Gameplay
         {
             if (PochaKitchen.Current != null) PochaKitchen.Current.Restore(data.Kitchen);
             _business = data.Business == null ? new BusinessSaveData() : JsonUtility.FromJson<BusinessSaveData>(JsonUtility.ToJson(data.Business));
+            if (!AreMenuSalesValid(_business, data.ServedCount))
+            {
+                _business.DailyMenuCounts = null;
+                _business.DailyMenuGold = null;
+                Debug.LogWarning("[Save] event=business_menu_sales result=fallback reason=invalid_breakdown", this);
+            }
             _growth = data.Growth == null ? new GrowthSaveData() : JsonUtility.FromJson<GrowthSaveData>(JsonUtility.ToJson(data.Growth));
             Growth.UnlockForests(_catalog, _growth);
             _hasSelection = data.HasSelection;
@@ -745,6 +782,26 @@ namespace HamPocha.Gameplay
                 if (table != null && !table.HasOrder) ReturnPreparedFood(table);
             AssignStoredFood();
             Version++;
+        }
+
+        internal static bool AreMenuSalesValid(BusinessSaveData business, int servedCount)
+        {
+            int[] counts = business.DailyMenuCounts;
+            long[] proceeds = business.DailyMenuGold;
+            if (counts == null && proceeds == null) return true;
+            if (counts == null || proceeds == null || counts.Length != BusinessSaveData.MenuCount ||
+                proceeds.Length != BusinessSaveData.MenuCount) return false;
+
+            int remainingCount = servedCount;
+            long remainingGold = business.DailyGold;
+            for (int i = 0; i < BusinessSaveData.MenuCount; i++)
+            {
+                if (counts[i] < 0 || counts[i] > remainingCount || proceeds[i] < 0 || proceeds[i] > remainingGold ||
+                    (counts[i] == 0 && proceeds[i] != 0)) return false;
+                remainingCount -= counts[i];
+                remainingGold -= proceeds[i];
+            }
+            return true;
         }
 
         private void SetMessage(string message)

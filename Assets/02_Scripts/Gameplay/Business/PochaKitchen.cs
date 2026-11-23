@@ -42,18 +42,19 @@ namespace HamPocha.Gameplay
         private const float MarketEntryRange = .75f;
         private const float ViewAreaMargin = .75f;
         private const float CounterHalfWidth = .96f;
-        private const float CounterReach = 1.18f;
-        private const float MonitorApproachOffset = .35f;
+        private const float ServingReach = 1.18f;
+        private const float OrderAcceptReach = 1.55f;
         private const float CookerRange = .82f;
         private const float StorageRange = .90f;
         private const float WalkSeconds = 1.3f;
         private const float SavedWallTolerance = .25f;
         private const float GuestScaleMultiplier = 1.45f;
         private const float InteriorGuestScale = PlayerMotor.InteriorVisualScale * GuestScaleMultiplier;
-        private const float GuestCameraDepth = .95f;
+        private const float GuestCameraDepth = 2.65f;
+        private const float HeldVisualSize = 1.00f;
         private const float VillageGuestSpacing = 1.12f;
         private enum Wheel { None, Fridge, Food, Cook, Outdoor, Display }
-        private enum Target { None, Market, Fridge, Food, Cook, Order, Outdoor, Exit, Display, Monitor }
+        private enum Target { None, Market, Fridge, Food, Cook, Order, Outdoor, Exit, Display }
         private SceneLoadManager _loader;
         private PlayerWorldInteraction _interaction;
         private GameSessionState _session;
@@ -75,8 +76,6 @@ namespace HamPocha.Gameplay
         private BoxCollider[] _marketFootprints = System.Array.Empty<BoxCollider>();
         private Transform _fridge;
         private Transform _food;
-        private Transform _monitor;
-        private Vector3 _monitorApproach;
         private BoxCollider _exitMat;
         private Transform _outdoorRoot;
         private Transform _counter;
@@ -109,16 +108,45 @@ namespace HamPocha.Gameplay
         private int _selected = -1;
         private bool _loading;
         private bool _enterWhenReady;
+        private bool _interiorLoadFailed;
         private bool _restoreView;
         private Bounds _businessArea, _viewArea;
         private Transform MarketPoint => _market == null ? null : _market.InteractionPoint;
         internal Camera InteriorCamera => _insideCamera;
         internal RectTransform TutorialViewTarget => _hud?.TutorialViewTarget;
+        internal RectTransform FirstDayViewControl => _hud?.FirstDayViewControl;
         internal bool IsLockNoticeOpen => _hud != null && _hud.IsLockNoticeOpen;
-        internal RectTransform TutorialWheelTarget => _hud?.TutorialWheelTarget(FirstBusinessWheelItem());
+        internal RectTransform TutorialWheelTarget => HasSelectedTutorialWheelSlot
+            ? _hud?.TutorialSelectedSlot(_selected) : _hud?.TutorialWheelTarget(FirstBusinessWheelItem());
+        internal bool HasSelectedTutorialWheelSlot => HasWheel && _wheel != Wheel.Display &&
+            _selected >= 0 && _selected < _wheelSize && _wheelItems[_selected] >= 0;
         internal Transform TutorialOutdoorCooker => _outdoor[0];
         internal Transform TutorialExit => _exitMat != null ? _exitMat.transform : null;
-        internal Transform TutorialMonitorVisual { get; private set; }
+        internal RectTransform TutorialBusinessButton => _hud?.TutorialBusinessButton;
+        internal RectTransform TutorialBusinessAction => _hud?.TutorialBusinessAction;
+        internal RectTransform BusinessPanelCard => _hud?.BusinessPanelCard;
+        internal RectTransform FirstDayWheelSlot(int item) => HasWheel ? _hud?.TutorialWheelTarget(item) : null;
+        internal bool FirstDaySlotSelected(int item) => HasSelectedTutorialWheelSlot && _wheelItems[_selected] == item;
+        internal Transform FirstDayOutdoorArea => _outdoorRoot;
+        internal Transform[] FirstDayCookers => _cook;
+        internal Camera FirstDayExteriorCamera => _villageCamera;
+        internal RectTransform FirstDayRecipeCard => _hud?.FirstDayRecipeCard;
+        internal RectTransform FirstDayOrderBadge(int slot) => _hud?.FirstDayOrderBadge(slot);
+        internal Transform FirstDayGuest(int slot) => slot >= 0 ? _visitors[slot] : null;
+        internal bool AtFirstDayEntrance()
+        {
+            if (!CanShow || IsInside || HasWheel) return false;
+            FindTarget();
+            return !_ambiguous && _near == Target.Market;
+        }
+        internal int FirstDayOrderSlot(int phase)
+        {
+            for (int i = 0; i < Stock.State.Orders.Length; i++)
+                if (Stock.State.Orders[i].Phase == phase && Stock.State.Orders[i].Menu == (int)RecipeId.CarrotSoup) return i;
+            return -1;
+        }
+        internal bool IsBusinessPanelOpen => _hud != null && _hud.IsBusinessPanelOpen;
+        internal bool CanConfirmBusinessPanel => !_session.IsClosing && !Sales.SummaryPending;
 
         internal Transform TutorialFacility(int lesson)
         {
@@ -127,7 +155,7 @@ namespace HamPocha.Gameplay
                 case 1: return _fridge;
                 case 2: return _food;
                 case 3: return _cook[0];
-                default: return _monitor;
+                default: return null;
             }
         }
         private bool _interiorReady;
@@ -200,10 +228,11 @@ namespace HamPocha.Gameplay
         private void OnTravel()
         {
             CloseWheel();
+            CloseBusinessPanel();
             if (IsInside) SetView(false);
             foreach (Transform guest in _visitors)
                 if (guest != null) guest.gameObject.SetActive(false);
-            _enterWhenReady = false;
+            FinishEntryWait();
         }
 
         public KitchenSaveData Capture()
@@ -230,14 +259,14 @@ namespace HamPocha.Gameplay
             if (!_loader.IsTransitioning && _loader.CurrentScene == SceneType.Village && _loader.CurrentRegion != null)
             {
                 if (_village != _loader.CurrentRegion.transform) BindVillage(_loader.CurrentRegion.transform);
-                if (!_loading && !_interiorReady && !_loader.IsStartupLoading && !IsIntro) StartCoroutine(LoadInterior());
+                if (!_loading && !_interiorReady && !_interiorLoadFailed && !_loader.IsStartupLoading && !IsIntro) StartCoroutine(LoadInterior());
                 if (_restoreView && _interiorReady && CanShow)
                 {
                     _restoreView = false;
                     SetView(true);
                 }
             }
-            if (HasWheel && (!CanShow || !_input.CanReadKitchenDirection || !_clock.CanAdvanceOutsideTutorial)) CloseWheel();
+            if (HasWheel && _clock.IsApplicationActive && !CanShow) CloseWheel();
             if (HasWheel)
             {
                 if (_wheel == Wheel.Display)
@@ -314,6 +343,7 @@ namespace HamPocha.Gameplay
                 if (!Application.CanStreamedLevelBeLoaded(InteriorPath))
                 {
                     Notify("포차 내부 씬이 빌드 목록에 없습니다.", "missing_scene");
+                    FailInteriorLoad();
                     yield break;
                 }
                 yield return SceneManager.LoadSceneAsync(InteriorPath, LoadSceneMode.Additive);
@@ -322,14 +352,13 @@ namespace HamPocha.Gameplay
             if (!scene.isLoaded || scene.rootCount != 1)
             {
                 Notify("포차 내부를 열 수 없습니다.", "invalid_scene");
+                FailInteriorLoad();
                 yield break;
             }
             Transform root = scene.GetRootGameObjects()[0].transform;
             _insideCamera = root.GetComponentInChildren<Camera>(true);
             _fridge = root.Find("Fridge");
             _food = root.Find("FoodStorage");
-            _monitor = root.Find("Decor/PCMonitorLowPolyToon");
-            TutorialMonitorVisual = _monitor != null ? _monitor.Find("Model") : null;
             _exitMat = root.Find("Decor/ExitMat")?.GetComponent<BoxCollider>();
             Transform player = root.Find("InteriorPlayer");
             _insideFloor = root.Find("KitchenFloor")?.GetComponent<BoxCollider>();
@@ -347,7 +376,8 @@ namespace HamPocha.Gameplay
                 System.Array.IndexOf(_cook, null) >= 0 || System.Array.IndexOf(_order, null) >= 0 ||
                 System.Array.IndexOf(_guestPoints, null) >= 0)
             {
-                Notify("포차 내부 오브젝트 연결을 확인하세요.", "missing_interior_reference");
+                Notify("포차 내부 오브젝트 연결을 확인하세요", "missing_interior_reference");
+                FailInteriorLoad();
                 yield break;
             }
             yield return null;
@@ -379,13 +409,6 @@ namespace HamPocha.Gameplay
                 face.x -= clearance + .04f;
                 _cookApproaches[i] = root.TransformPoint(face);
             }
-            // 모니터는 벽 너머에 있으므로 플레이어가 설 수 있는 카운터 앞을 접근 지점으로 삼는다.
-            if (_monitor != null)
-                _monitorApproach = root.TransformPoint(new Vector3(root.InverseTransformPoint(_monitor.position).x + MonitorApproachOffset,
-                    position.y, _insideMinZ + .12f));
-            else
-                Debug.LogError("[Scene] event=pocha_monitor result=unavailable reason=missing_reference", this);
-
             RestoreInsidePosition();
             for (int i = 0; i < _visitors.Length; i++)
             {
@@ -398,8 +421,9 @@ namespace HamPocha.Gameplay
             _outsideHand = _loader.PlayerBody.GetComponent<PlayerMotor>().CreateCarryAnchor();
             _interiorReady = true;
             _loading = false;
-            if (_enterWhenReady && CanShow && CanSwitchView) SetView(true, playSound: true);
-            _enterWhenReady = false;
+            bool shouldEnter = _enterWhenReady;
+            FinishEntryWait();
+            if (shouldEnter && CanShow && CanSwitchView) SetView(true, playSound: true);
             Debug.Log("[Scene] event=pocha_interior result=ready", this);
         }
 
@@ -493,10 +517,11 @@ namespace HamPocha.Gameplay
         public void ToggleView()
         {
             if (!CanShow || HasWheel) return;
+            if (TutorialUi.Current?.BlocksFirstDayExterior == true) return;
             if (IsInside) { SetView(false, playSound: true); return; }
             if (!CanSwitchView)
             {
-                Notify("포차 앞이나 야시장에서 시점을 전환할 수 있어요.", "market_out_of_range");
+                Notify("포차 앞이나 야시장에서 시점을 전환할 수 있어요", "market_out_of_range");
                 return;
             }
             Enter();
@@ -505,11 +530,29 @@ namespace HamPocha.Gameplay
         private void Enter()
         {
             if (_interiorReady) SetView(true, playSound: true);
-            else
+            else if (_interiorLoadFailed) Notify("포차 내부를 열 수 없어요", "interior_load_failed");
+            else if (!_enterWhenReady)
             {
                 _enterWhenReady = true;
-                Notify("포차 내부를 준비하고 있어요.", "interior_loading", true);
+                _loader.SetUiOpen(this, true);
+                _loader.ShowKitchenLoading(true);
+                Debug.Log("[Scene] event=pocha_interior result=waiting", this);
             }
+        }
+
+        private void FailInteriorLoad()
+        {
+            _interiorLoadFailed = true;
+            _loading = false;
+            FinishEntryWait();
+        }
+
+        private void FinishEntryWait()
+        {
+            if (!_enterWhenReady) return;
+            _enterWhenReady = false;
+            _loader.SetUiOpen(this, false);
+            _loader.ShowKitchenLoading(false);
         }
 
         private void SetView(bool inside, bool playSound = false)
@@ -530,55 +573,43 @@ namespace HamPocha.Gameplay
             }
         }
 
-        private async void ConfirmOperation()
+        internal void OpenBusinessPanel()
         {
-            if (_session.IsClosing)
-            {
-                Notify(ClosingNotice, "midnight_closing");
-                return;
-            }
-            if (!IsOpen && TutorialUi.Current != null && TutorialUi.Current.IsIntroducingPocha && !HasOpeningStock())
-            {
-                NotifyLocked("아직 재료가 없어요. 숲에서 재료를 모아 오세요.", "tutorial_opening_ingredients_missing", missingIngredients: true);
-                TutorialUi.Current.OnIntroMonitorUsed();
-                return;
-            }
-            if (!IsOpen && !_session.CanOpenAtCurrentTime)
-            {
-                Notify(_session.OpeningStatus, "opening_time");
-                return;
-            }
-            if (Sales.SummaryPending)
-            {
-                Notify("영업 결산을 먼저 확인하세요.", "summary_pending");
-                return;
-            }
-
-            bool open = IsOpen;
-            bool accepted;
+            if (!CanShow || HasWheel || Sales.SummaryPending || !_loader.CanUseWorldInteraction) return;
             _loader.SetUiOpen(this, true);
-            try
-            {
-                accepted = await _hud.ConfirmBusinessOperation(open);
-            }
-            finally
-            {
-                if (_loader != null) _loader.SetUiOpen(this, false);
-            }
+            _hud.ShowBusinessPanel();
+            Debug.Log("[UI] event=business_sales_panel result=opened", this);
+        }
 
-            if (!accepted || this == null || _loader == null || !CanShow || !IsInside) return;
-            if (IsOpen == open && !Sales.SummaryPending) StartOrStop();
-            else Notify("영업 상태가 바뀌었어요. 모니터에서 다시 확인하세요.", "operation_changed");
+        internal void CloseBusinessPanel()
+        {
+            if (!IsBusinessPanelOpen) return;
+            _hud.HideBusinessPanel();
+            if (_loader != null) _loader.SetUiOpen(this, false);
+            TutorialUi.Current?.OnIntroBusinessPanelUsed();
+        }
+
+        internal void ConfirmBusinessPanel()
+        {
+            if (!IsBusinessPanelOpen || _session.IsClosing || Sales.SummaryPending) return;
+            CloseBusinessPanel();
+            StartOrStop();
         }
 
         private void StartOrStop()
         {
-            if (!CanShow || HasWheel || _market == null || !IsInside) return;
+            if (!CanShow || HasWheel || _market == null) return;
             string message;
             bool open = IsOpen;
+            if (open && TutorialUi.Current?.RejectFirstDayClosing() == true) return;
+            if (!open && !_session.CanOpenAtCurrentTime)
+            {
+                Notify(_session.OpeningStatus, "opening_time");
+                return;
+            }
             if (!open && !HasOpeningStock())
             {
-                NotifyLocked("재료가 부족해요. 냉장고에 재료를 보관해 주세요.", "opening_ingredients_missing", missingIngredients: true);
+                NotifyLocked("재료가 부족해요. 냉장고에 재료를 보관해 주세요", "opening_ingredients_missing", missingIngredients: true);
                 return;
             }
             bool success = open ? _loader.TryStopBusiness(out message) : _loader.TryStartBusiness(_market, out message);
@@ -587,7 +618,7 @@ namespace HamPocha.Gameplay
                 if (open) CloseOrders();
                 else _wasOpen = true;
             }
-            Notify(message.Length == 0 ? (open ? "영업을 마쳤어요." : "영업을 시작했어요.") : message, open ? "close" : "open", success);
+            Notify(message.Length == 0 ? (open ? "영업을 마쳤어요" : "영업을 시작했어요") : message, open ? "close" : "open", success);
         }
 
         public void AcknowledgeSummary() { Sales.ConfirmSummary(); }
@@ -598,7 +629,7 @@ namespace HamPocha.Gameplay
             Stock.State.Hand = -1;
             Sfx.Play(SfxCue.MenuClose);
             PlayInteractionMotion();
-            Notify("들고 있던 물건을 버렸어요.", "discard", true);
+            Notify("들고 있던 물건을 버렸어요", "discard", true);
         }
 
         public void ApplyControl(bool canMove, PlayerMotor outsideMotor, Rigidbody outsideBody)
@@ -635,9 +666,11 @@ namespace HamPocha.Gameplay
             }
             if (HasWheel) { ConfirmWheel(); return true; }
             FindTarget();
+            if (TutorialUi.Current?.UsesFirstDayRounds == true &&
+                !TutorialUi.Current.AllowsFirstDayKitchenInteraction(GetOutlineTarget())) return true;
             if (_ambiguous)
             {
-                Notify("대상이 겹쳐요. 더 가까이 가거나 원하는 대상을 바라보세요.", "ambiguous_targets");
+                Notify("대상이 겹쳐요. 더 가까이 가거나 원하는 대상을 바라보세요", "ambiguous_targets");
                 return true;
             }
             switch (_near)
@@ -645,32 +678,30 @@ namespace HamPocha.Gameplay
                 case Target.Market:
                     Enter();
                     break;
-                case Target.Monitor:
-                    ConfirmOperation();
-                    break;
                 case Target.Exit:
+                    if (TutorialUi.Current?.BlocksFirstDayExterior == true) return true;
                     Debug.Log("[Input] event=pocha_exit result=accepted source=exit_mat", this);
                     SetView(false, playSound: true);
                     break;
                 case Target.Fridge:
                     if (Hand == -1) OpenWheel(Wheel.Fridge, 0);
-                    else NotifyResult(Stock.PutIngredient(), "재료를 냉장고에 넣었어요.", "보관할 수 있는 재료인지, 냉장고가 가득 찼는지 확인하세요.", "fridge_return");
+                    else NotifyResult(Stock.PutIngredient(), "재료를 냉장고에 넣었어요", "보관할 수 있는 재료인지, 냉장고가 가득 찼는지 확인하세요", "fridge_return");
                     break;
                 case Target.Food:
                     if (Hand == -1) OpenWheel(Wheel.Food, 0);
-                    else NotifyResult(Stock.StoreCarriedItem(), "보관했어요.", "보관대에 빈 칸이 없어요.", "shelf_store");
+                    else NotifyResult(Stock.StoreCarriedItem(), "보관했어요", "보관대에 빈 칸이 없어요", "shelf_store");
                     break;
                 case Target.Cook:
                     InteractWithCooker(_nearSlot);
                     break;
                 case Target.Outdoor:
-                    if (!OutdoorUnlocked) NotifyLocked("성장 메뉴에서 야시장을 해금하세요.", "outdoor_locked", facility: true);
+                    if (!OutdoorUnlocked) NotifyLocked("성장 메뉴에서 야시장을 해금하세요", "outdoor_locked", facility: true);
                     else if (_nearSlot >= Growth.OutdoorCookers(Sales.Progress))
-                        NotifyLocked("성장 메뉴에서 해당 화로를 해금하세요.", "outdoor_cooker_locked", facility: true);
+                        NotifyLocked("성장 메뉴에서 해당 화로를 해금하세요", "outdoor_cooker_locked", facility: true);
                     else InteractWithOutdoorCooker(_nearSlot);
                     break;
                 case Target.Display:
-                    if (!OutdoorUnlocked) NotifyLocked("성장 메뉴에서 야시장을 해금하세요.", "outdoor_display_locked", facility: true);
+                    if (!OutdoorUnlocked) NotifyLocked("성장 메뉴에서 야시장을 해금하세요", "outdoor_display_locked", facility: true);
                     else OpenWheel(Wheel.Display, 0);
                     break;
                 case Target.Order: InteractWithOrder(_nearSlot); break;
@@ -683,12 +714,12 @@ namespace HamPocha.Gameplay
         {
             KitchenCook cook = Stock.State.Inside[slot];
             if (cook.Ready)
-                NotifyResult(Stock.TakeCooked(slot), "완성 음식을 들었어요.", "손에 든 물건을 먼저 보관하세요.", "food_pickup");
-            else if (cook.Started) Notify("조리 중이에요.", "cooking");
+                NotifyResult(Stock.TakeCooked(slot), "완성 음식을 들었어요", "손에 든 물건을 먼저 보관하세요", "food_pickup");
+            else if (cook.Started) Notify("조리 중이에요", "cooking");
             else if (Stock.CanInsert(slot))
-                NotifyResult(Stock.Insert(slot), "재료를 넣었어요.", "필요한 재료를 확인하세요.", "ingredient_insert");
+                NotifyResult(Stock.Insert(slot), "재료를 넣었어요", "필요한 재료를 확인하세요", "ingredient_insert");
             else if (Stock.CanChangeMenu(slot)) OpenWheel(Wheel.Cook, slot);
-            else Notify("지정한 레시피에 필요한 재료를 확인하세요.", "ingredient_not_required");
+            else Notify("지정한 레시피에 필요한 재료를 확인하세요", "ingredient_not_required");
         }
 
         private void InteractWithOutdoorCooker(int slot)
@@ -711,7 +742,7 @@ namespace HamPocha.Gameplay
         {
             if (!_session.CanTakeNewOrders)
             {
-                Notify("영업을 시작한 뒤 조리할 수 있어요.", "outdoor_closed");
+                Notify("영업을 시작한 뒤 조리할 수 있어요", "outdoor_closed");
                 return;
             }
 
@@ -743,25 +774,25 @@ namespace HamPocha.Gameplay
         // 번호는 확인한 영업 안내를 저장하는 비트 위치다. 새 문구는 배열 끝에 추가한다.
         internal static readonly string[] BusinessTips =
         {
-            "표시된 포차로 돌아가세요.",
-            "포차 앞으로 가서 상호작용하거나 시점 전환 버튼을 눌러 들어가세요.",
-            "‘일괄 보관’을 터치하거나 조이스틱으로 가리킨 뒤 상호작용을 누르세요.",
-            "강조된 재료를 골라 1개를 꺼내세요.",
-            "강조된 주문 메뉴를 고르세요.",
-            "슬롯을 터치하거나 조이스틱으로 가리킨 뒤 상호작용을 누르세요.",
-            "정오가 되면 포차 안 모니터에서 영업을 시작하세요. 개점은 하루 한 번이에요.",
-            "손에 든 물건을 냉장고나 보관대에 넣으세요.",
-            "냉장고 가까이에서 상호작용하고 ‘일괄 보관’을 고르세요.",
-            "완성 음식을 든 채 같은 메뉴 아이콘이 뜬 손님에게 가세요. 상호작용하면 서빙돼요.",
-            "그 재료가 필요한 조리대로 가서 상호작용으로 넣으세요.",
-            "다른 물건을 들고 있어요. 냉장고나 보관대에 먼저 넣으세요.",
-            "좌상단 주문을 보고 조리대 원형 메뉴에서 같은 음식을 고르세요.",
-            "완성된 조리대 가까이에서 상호작용으로 음식을 꺼내세요.",
-            "재료를 모두 넣으면 자동으로 조리돼요. 기다리는 동안 다른 손님의 주문도 받을 수 있어요. 조리가 끝나면 조리대에서 음식을 집으세요.",
-            "좌상단 주문에 표시된 재료를 확인하세요. 냉장고에서 한 개씩 꺼내 같은 조리대에 넣으세요.",
-            "물음표가 뜬 손님에게 다가가 25초 안에 주문을 받으세요. 수락하고 나면 50초 안에 서빙해야 해요.",
-            "냉장고에 재료를 일괄 보관해 다음 주문을 준비하세요.",
-            "실내 주문 포인트에 손님이 올 때까지 기다리세요.",
+            "표시된 포차로 돌아가세요",
+            "포차 가까이에서 상호작용하거나 시점 전환 버튼을 눌러 들어가세요",
+            "‘일괄 보관’을 터치하거나 조이스틱으로 가리킨 뒤 상호작용을 누르세요",
+            "강조된 재료를 골라 1개를 꺼내세요",
+            "강조된 주문 메뉴를 고르세요",
+            "슬롯을 터치하거나 조이스틱으로 가리킨 뒤 상호작용을 누르세요",
+            "정오가 되면 화면 오른쪽의 영업 버튼에서 영업을 시작할 수 있어요. 개점은 하루 한 번이에요",
+            "손에 든 물건을 냉장고나 보관대에 넣으세요",
+            "냉장고 가까이에서 상호작용하고 ‘일괄 보관’을 고르세요",
+            "완성 음식을 든 채 같은 메뉴 아이콘이 뜬 손님에게 가세요. 상호작용하면 서빙돼요",
+            "그 재료가 필요한 조리대로 가서 상호작용으로 넣으세요",
+            "다른 물건을 들고 있어요. 냉장고나 보관대에 먼저 넣으세요",
+            "좌상단 주문을 보고 조리대 원형 메뉴에서 같은 음식을 고르세요",
+            "완성된 조리대 가까이에서 상호작용으로 음식을 꺼내세요",
+            "재료를 모두 넣으면 자동으로 조리돼요. 기다리는 동안 다른 손님의 주문도 받을 수 있어요. 조리가 끝나면 조리대에서 음식을 집으세요",
+            "좌상단 주문에 표시된 재료를 확인하세요. 냉장고에서 한 개씩 꺼내 같은 조리대에 넣으세요",
+            "물음표가 뜬 손님에게 다가가 25초 안에 주문을 받으세요. 수락하고 나면 50초 안에 서빙해야 해요",
+            "냉장고에 재료를 일괄 보관해 다음 주문을 준비하세요",
+            "실내 주문 포인트에 손님이 올 때까지 기다리세요",
         };
 
         public int FirstBusinessTipId(int guidedItem)
@@ -818,7 +849,6 @@ namespace HamPocha.Gameplay
         {
             if (tip == 1) return MarketPoint;
             if (!IsInside || HasWheel || tip < 0) return null;
-            if (tip == 6) return _monitor;
             if (tip == 8 || tip == 15 || tip == 17) return _fridge;
             if (tip == 7 || tip == 11) return HamPocha.Gameplay.Inventory.IsIngredientKey(Hand) ? _fridge : _food;
             if (tip == 9 || tip == 16)
@@ -826,7 +856,7 @@ namespace HamPocha.Gameplay
                 int phase = tip == 9 ? 3 : 2;
                 for (int i = 0; i < _order.Length; i++)
                     if (Stock.State.Orders[i].Phase == phase && (phase == 2 || Stock.State.Orders[i].Menu + 5 == Hand))
-                        return _order[i];
+                        return _visitors[i] != null ? _visitors[i] : _guestPoints[i];
             }
             if (tip == 10 || tip == 12 || tip == 13)
             {
@@ -970,10 +1000,10 @@ namespace HamPocha.Gameplay
         private string OutdoorCookStatus(int slot)
         {
             OutdoorCook cook = Stock.State.SkewerCooks[slot];
-            if (Stock.State.Outside[slot].Started) return "이전 음식의 조리 또는 진열을 마치는 중이에요.";
+            if (Stock.State.Outside[slot].Started) return "이전 음식의 조리 또는 진열을 마치는 중이에요";
             if (cook.Selection > 0 && Stock.State.SkewerDisplay[cook.Selection - 1] >= KitchenStock.OutdoorDisplayLimit)
-                return "진열대에 자리가 생기면 이어서 조리해요.";
-            return "꼬치를 조리 중이에요.";
+                return "진열대에 자리가 생기면 이어서 조리해요";
+            return "꼬치를 조리 중이에요";
         }
 
         private static int InventoryKey(int index) => HamPocha.Gameplay.Inventory.IngredientKey((IngredientType)index);
@@ -1013,16 +1043,20 @@ namespace HamPocha.Gameplay
 
             if (IsInside)
             {
-                ConsiderCounter(_monitor, _monitorApproach, pos, Target.Monitor, 0);
                 Consider(_fridge, pos, Target.Fridge, 0, StorageRange);
                 Consider(_food, pos, Target.Food, 0, StorageRange);
+                // 주문 3번과 조리대 3번 사이의 경계를 기준으로 한 쪽만 상호작용 후보가 된다.
+                Vector3 thirdBoundary = (_order[2].position + _cookApproaches[2]) * .5f;
+                bool atThirdCookerSide = Vector3.Dot(pos - thirdBoundary, _insideRoom.right) > 0f;
                 for (int i = 0; i < 3; i++)
                 {
-                    Consider(_cook[i], pos, Target.Cook, i, CookerRange, _cookApproaches[i]);
+                    if (i != 2 || atThirdCookerSide)
+                        Consider(_cook[i], pos, Target.Cook, i, CookerRange, _cookApproaches[i]);
                     KitchenOrder order = Stock.State.Orders[i];
-                    if (IsOpen && order.Remaining > 0 &&
-                        (order.Phase == 2 || (order.Phase == 3 && HamPocha.Gameplay.Inventory.IsFoodKey(Hand))))
-                        ConsiderCounter(_order[i], _order[i].position, pos, Target.Order, i);
+                    bool accepting = order.Phase == 2 && _session.CanTakeNewOrders;
+                    bool serving = order.Phase == 3 && HamPocha.Gameplay.Inventory.IsFoodKey(Hand);
+                    if (IsOpen && order.Remaining > 0 && (accepting || serving) && (i != 2 || !atThirdCookerSide))
+                        ConsiderOrder(i, pos, accepting);
                 }
             }
             else
@@ -1035,11 +1069,10 @@ namespace HamPocha.Gameplay
             Vector3 facing = IsInside ? InsideMotor.FacingDirection : _interaction.FacingDirection;
             int chosen = _interaction.ChooseInteraction(_targets, pos, facing, out _ambiguous);
             if (chosen >= 0) (_near, _nearSlot) = _targetUses[chosen];
-            if (_ambiguous) { Hint = "가까이 가거나 원하는 대상을 바라보세요."; return; }
+            if (_ambiguous) { Hint = "가까이 가거나 원하는 대상을 바라보세요"; return; }
             switch (_near)
             {
                 case Target.Market: Hint = "포차 들어가기"; break;
-                case Target.Monitor: Hint = IsOpen ? "영업 종료" : _session.OpeningStatus; break;
                 case Target.Fridge:
                 case Target.Food:
                 case Target.Cook:
@@ -1057,7 +1090,6 @@ namespace HamPocha.Gameplay
             switch (_near)
             {
                 case Target.Market: return _market.transform;
-                case Target.Monitor: return _monitor;
                 case Target.Exit: return _exitMat.transform;
                 case Target.Fridge: return _fridge;
                 case Target.Food: return _food;
@@ -1082,17 +1114,26 @@ namespace HamPocha.Gameplay
             return Mathf.Abs(offset.x) <= halfSize.x && Mathf.Abs(offset.z) <= halfSize.z;
         }
 
-        private void ConsiderCounter(Transform target, Vector3 approach, Vector3 player, Target type, int slot)
+        private void ConsiderOrder(int slot, Vector3 player, bool accepting)
         {
-            if (target == null || !target.gameObject.activeInHierarchy) return;
+            Transform counterPoint = _order[slot];
+            if (counterPoint == null || !counterPoint.gameObject.activeInHierarchy) return;
 
-            // 가판대의 좌우 구역은 분리하고 통로 쪽으로는 기존 거리까지 닿게 한다.
-            Vector3 delta = player - approach;
+            Vector3 delta = player - counterPoint.position;
             delta.y = 0f;
-            float alongCounter = Vector3.Dot(delta, _insideRoom.right) / CounterHalfWidth;
-            float towardAisle = Vector3.Dot(delta, _insideRoom.forward) / CounterReach;
-            if (alongCounter * alongCounter + towardAisle * towardAisle <= 1f)
-                AddTarget(target, type, slot, delta.magnitude, approach);
+            float alongCounter = Vector3.Dot(delta, _insideRoom.right);
+            float towardAisle = Vector3.Dot(delta, _insideRoom.forward);
+            if (IsInOrderRange(alongCounter, towardAisle, accepting))
+                AddTarget(counterPoint, Target.Order, slot, delta.magnitude);
+        }
+
+        private static bool IsInOrderRange(float alongCounter, float towardAisle, bool accepting)
+        {
+            // 옆 주문 자리와 서빙 범위는 유지하고, 주문을 받을 때 통로 쪽으로만 더 닿게 한다.
+            float reach = accepting && towardAisle > 0f ? OrderAcceptReach : ServingReach;
+            float width = alongCounter / CounterHalfWidth;
+            float depth = towardAisle / reach;
+            return width * width + depth * depth <= 1f;
         }
 
         private void Consider(Transform target, Vector3 player, Target type, int slot, float range = Range,
@@ -1176,6 +1217,7 @@ namespace HamPocha.Gameplay
             Wheel wheel = _wheel;
             if (wheel == Wheel.Display) return;
             int item = index < 0 ? -1 : _wheelItems[index];
+            if (TutorialUi.Current?.AllowsFirstDayWheelItem(item) == false) return;
             int cook = _wheelCook;
             if (wheel == Wheel.Outdoor && item >= SkewerKeyStart)
             {
@@ -1183,8 +1225,8 @@ namespace HamPocha.Gameplay
                 OutdoorRecipe recipe = Stock.Skewer(menu);
                 if (recipe == null || !Stock.IsSkewerUnlocked(menu))
                 {
-                    string reason = recipe == null ? "야시장 메뉴를 불러올 수 없어요." :
-                        $"숲 {Stock.SkewerForestNumber(recipe)}이 열리면 조리할 수 있어요.";
+                    string reason = recipe == null ? "야시장 메뉴를 불러올 수 없어요" :
+                        $"숲 {Stock.SkewerForestNumber(recipe)}이 열리면 조리할 수 있어요";
                     NotifyLocked(reason, "skewer_locked");
                     return;
                 }
@@ -1196,19 +1238,19 @@ namespace HamPocha.Gameplay
             {
                 if (index >= 0 && (wheel == Wheel.Cook || wheel == Wheel.Outdoor))
                 {
-                    NotifyLocked("성장 메뉴에서 이 음식을 먼저 해금하세요.", "recipe_locked");
+                    NotifyLocked("성장 메뉴에서 이 음식을 먼저 해금하세요", "recipe_locked");
                     return;
                 }
 
-                Notify(index < 0 ? "조이스틱으로 먼저 항목을 선택하세요." : "비어 있거나 잠긴 칸이에요.", "empty_slot");
+                Notify(index < 0 ? "조이스틱으로 먼저 항목을 선택하세요" : "비어 있거나 잠긴 칸이에요", "empty_slot");
                 return;
             }
             CloseWheel();
             if (wheel == Wheel.Fridge && item == DepositSlot) DepositBag();
-            else if (wheel == Wheel.Fridge) NotifyResult(Stock.TakeIngredient(item), "재료를 하나 꺼냈어요.", "재료가 없어요.", "fridge_pickup");
-            else if (wheel == Wheel.Food) NotifyResult(Stock.TakeStoredItem(index), "보관대에서 하나 꺼냈어요.", "빈 칸이에요.", "shelf_pickup");
-            else NotifyResult(Stock.SelectMenu(cook, item - 5), "메뉴를 지정했어요. 필요한 재료를 넣으세요.",
-                "냉장고 재고나 조리대에 이미 넣은 재료를 확인하세요.", "select_recipe");
+            else if (wheel == Wheel.Fridge) NotifyResult(Stock.TakeIngredient(item), "재료를 하나 꺼냈어요", "재료가 없어요", "fridge_pickup");
+            else if (wheel == Wheel.Food) NotifyResult(Stock.TakeStoredItem(index), "보관대에서 하나 꺼냈어요", "빈 칸이에요", "shelf_pickup");
+            else NotifyResult(Stock.SelectMenu(cook, item - 5), "메뉴를 지정했어요. 필요한 재료를 넣으세요",
+                "냉장고 재고나 조리대에 이미 넣은 재료를 확인하세요", "select_recipe");
         }
 
         public void CancelWheel() { CloseWheel(); }
@@ -1216,11 +1258,15 @@ namespace HamPocha.Gameplay
         private void DepositBag()
         {
             int moved = Stock.DepositBag();
-            if (moved > 0) PlayInteractionMotion();
+            if (moved > 0)
+            {
+                PlayInteractionMotion();
+                TutorialUi.Current?.OnFirstDayDeposit();
+            }
             bool remaining = false;
             for (int i = 0; i < HamPocha.Gameplay.Inventory.IngredientTypeCount; i++) remaining |= Inventory.GetCount((IngredientType)i) > 0;
-            Notify(moved == 0 && !remaining ? "가방에 보관할 재료가 없어요." :
-                $"{moved}개 입고" + (remaining ? " · 초과 재료는 가방에 남았어요." : ""),
+            Notify(moved == 0 && !remaining ? "가방에 보관할 재료가 없어요" :
+                $"{moved}개 입고" + (remaining ? " · 초과 재료는 가방에 남았어요" : ""),
                 remaining ? "deposit_partial" : "deposit", moved > 0);
         }
 
@@ -1228,6 +1274,8 @@ namespace HamPocha.Gameplay
         {
             if (_insideHand == null || Hand == _shownHand) return;
             _shownHand = Hand;
+            InsideMotor.SetCarryPose(Hand >= 0);
+            _loader.PlayerBody.GetComponent<PlayerMotor>().SetCarryPose(Hand >= 0);
             if (_insideHeldVisual != null)
             {
                 _insideHeldVisual.SetActive(false);
@@ -1261,13 +1309,16 @@ namespace HamPocha.Gameplay
         private static GameObject CreateHeldVisual(GameObject prefab, Transform anchor)
         {
             GameObject visual = Instantiate(prefab, anchor, false);
+            foreach (Collider collider in visual.GetComponentsInChildren<Collider>(true))
+                collider.enabled = false;
+
             Renderer[] renderers = visual.GetComponentsInChildren<Renderer>(true);
             if (renderers.Length == 0) return visual;
 
             Bounds bounds = renderers[0].bounds;
             foreach (Renderer renderer in renderers) bounds.Encapsulate(renderer.bounds);
             float width = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z);
-            if (width > 0f) visual.transform.localScale *= .40f / width;
+            if (width > 0f) visual.transform.localScale *= HeldVisualSize / width;
             return visual;
         }
 
@@ -1294,7 +1345,12 @@ namespace HamPocha.Gameplay
                     Sfx.Play(SfxCue.MenuOpen);
                 }
                 else if (order.Phase == 4) order.Phase = 0;
-                else Leave(slot, order, OrderOutcome.Missed);
+                else
+                {
+                    Leave(slot, order, OrderOutcome.Missed);
+                    if (order.Menu == (int)RecipeId.CarrotSoup && TutorialUi.Current?.RequiresFirstDaySoup == true)
+                        _hud?.ShowFirstOrderTimeout(Stock.HasReadyFood(order.Menu), _session.CanTakeNewOrders);
+                }
             }
             if (!_session.CanTakeNewOrders) return;
             Stock.State.NextVisit = Mathf.Max(0, Stock.State.NextVisit - delta);
@@ -1306,9 +1362,18 @@ namespace HamPocha.Gameplay
                 if (Stock.State.Orders[i].Phase == 0 && Random.Range(0, ++available) == 0) freeSlot = i;
             if (freeSlot < 0) return;
             int menu = -1;
-            available = 0;
-            for (int i = 0; i < 7; i++)
-                if (Stock.CanOffer(i) && Random.Range(0, ++available) == 0) menu = i;
+            if (TutorialUi.Current?.RequiresFirstDaySoup == true)
+            {
+                foreach (KitchenOrder order in Stock.State.Orders)
+                    if (order.Phase >= 1 && order.Phase <= 3) return;
+                if (Stock.CanOffer((int)RecipeId.CarrotSoup)) menu = (int)RecipeId.CarrotSoup;
+            }
+            else
+            {
+                available = 0;
+                for (int i = 0; i < 7; i++)
+                    if (Stock.CanOffer(i) && Random.Range(0, ++available) == 0) menu = i;
+            }
             if (menu < 0) return;
             KitchenOrder next = Stock.State.Orders[freeSlot];
             next.ResidentTicket = NextResidentTicket();
@@ -1448,7 +1513,7 @@ namespace HamPocha.Gameplay
                 order.Sequence = ++Stock.State.Sequence;
                 Sfx.Play(SfxCue.Confirm);
                 PlayInteractionMotion();
-                Notify("주문을 받았어요.", "order_accept", true);
+                Notify("주문을 받았어요", "order_accept", true);
             }
             else if (order.Phase == 3 && HamPocha.Gameplay.Inventory.IsFoodKey(Hand))
             {
@@ -1461,7 +1526,8 @@ namespace HamPocha.Gameplay
                     Sales.Progress.Tutorial.TakeawayServed = true;
                     Debug.Log($"[Gameplay] frame={Time.frameCount} event=tutorial_first_serve result=completed menu={order.Menu}", this);
                 }
-                Notify(correct ? "서빙과 정산을 마쳤어요." : "다른 음식을 건넸어요. 보상은 없어요.", correct ? "served" : "wrong_food", correct);
+                Notify(correct ? "서빙과 정산을 마쳤어요" : "다른 음식을 건넸어요. 보상은 없어요", correct ? "served" : "wrong_food", correct);
+                if (!correct) TutorialUi.Current?.OnWrongDelivery();
             }
         }
 
@@ -1545,7 +1611,7 @@ namespace HamPocha.Gameplay
             order.Phase = 4;
             order.Remaining = WalkSeconds + PoseMotion.ReactionHoldSeconds;
             if (outcome == OrderOutcome.Served) Sfx.Play(SfxCue.Happy);
-            Sales.RecordOrderOutcome(outcome, order.Gold, order.Xp);
+            Sales.RecordOrderOutcome(outcome, order.Gold, order.Xp, order.Menu);
             Debug.Log($"[Gameplay] event=pocha_order result={outcome} menu={order.Menu}", this);
         }
 
@@ -1645,7 +1711,8 @@ namespace HamPocha.Gameplay
             OutdoorRecipe recipe = Stock.Skewer(skewer);
             int gold = recipe == null ? Sales.GetSaleGold(legacyDish) : recipe.Price;
             int xp = recipe == null ? Sales.GetSaleXp(legacyDish) : recipe.SalesXp;
-            Sales.RecordOrderOutcome(OrderOutcome.Served, gold, xp);
+            int menu = recipe == null ? (int)legacyDish : BusinessSaveData.IndoorMenuCount + skewer;
+            Sales.RecordOrderOutcome(OrderOutcome.Served, gold, xp, menu);
             Debug.Log($"[Gameplay] event=outdoor_sale result=paid skewer={skewer} legacy={legacyDish} gold={gold} xp={xp}", this);
             if (!IsInside && CanShow)
             {

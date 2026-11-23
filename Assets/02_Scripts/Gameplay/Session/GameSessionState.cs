@@ -46,6 +46,7 @@ namespace HamPocha.Gameplay
         internal bool IsClosing => CurrentActivity == PlayerActivity.Business && BusinessState == DailyBusinessState.LastOrder;
         internal bool CanOpenAtCurrentTime => _worldClock.Hour >= OpeningHour &&
             _openedBusinessDay != _worldClock.BusinessDayNumber;
+        internal bool HasOpenedBusinessToday => _openedBusinessDay == _worldClock.BusinessDayNumber;
         internal string OpeningStatus
         {
             get
@@ -158,17 +159,28 @@ namespace HamPocha.Gameplay
             Debug.Log($"[Save] event=daily_schedule_migration result=restored active_business={running}", this);
         }
 
-        public bool TrySetNickname(string value)
+        public bool TrySetNickname(string value, bool rename = false)
         {
-            if (Nickname.Length != 0 || !SessionSaveData.TryNormalizeNickname(value, out string nickname))
+            bool hasNickname = Nickname.Length != 0;
+            if (hasNickname != rename)
             {
-                Debug.Log("[Gameplay] event=nickname_set result=rejected reason=already_set_or_invalid", this);
+                Debug.Log($"[Gameplay] event=nickname_set result=rejected reason=unexpected_existing_nickname renaming={rename}", this);
                 return false;
+            }
+            if (!SessionSaveData.TryNormalizeNickname(value, out string nickname))
+            {
+                Debug.Log($"[Gameplay] event=nickname_set result=rejected reason=invalid_length renaming={rename}", this);
+                return false;
+            }
+            if (Nickname == nickname)
+            {
+                Debug.Log("[Gameplay] event=nickname_set result=unchanged renaming=True", this);
+                return true;
             }
 
             Nickname = nickname;
             StateVersion++;
-            Debug.Log("[Gameplay] event=nickname_set result=accepted", this);
+            Debug.Log($"[Gameplay] event=nickname_set result=accepted renaming={rename}", this);
             return true;
         }
 
@@ -176,7 +188,7 @@ namespace HamPocha.Gameplay
         {
             if (CurrentActivity == PlayerActivity.Business)
             {
-                message = "영업을 종료한 뒤 다른 구역으로 이동하세요.";
+                message = "영업을 종료한 뒤 다른 구역으로 이동하세요";
                 return false;
             }
 
@@ -186,7 +198,7 @@ namespace HamPocha.Gameplay
             int forestIndex = (int)region - (int)SceneType.Forest01;
             if (isForest && station != null && !station.IsForestOwned(forestIndex))
             {
-                message = region == SceneType.Forest04 ? Growth.WinterForestRequirement : "해당 숲 재료를 사용하는 음식을 해금하세요.";
+                message = region == SceneType.Forest04 ? Growth.WinterForestRequirement : "해당 숲 재료를 사용하는 음식을 해금하세요";
                 return false;
             }
 
@@ -251,7 +263,7 @@ namespace HamPocha.Gameplay
             message = string.Empty;
             if (region != SceneType.Village || CurrentActivity != PlayerActivity.FreeRoam)
             {
-                message = "마을에서 현재 활동을 마친 뒤 개점하세요.";
+                message = "마을에서 현재 활동을 마친 뒤 개점하세요";
                 return false;
             }
             if (!CanOpenAtCurrentTime)
@@ -263,7 +275,7 @@ namespace HamPocha.Gameplay
             if (_station == null || _station.SummaryPending || !(PochaKitchen.Current != null && !PochaKitchen.Current.UsesLegacyIntro ?
                 PochaKitchen.Current.HasOpeningStock() : _station.HasRawRecipeStock()))
             {
-                message = "결산을 확인하고, 조리 가능한 원재료를 준비하세요.";
+                message = "결산을 확인하고, 조리 가능한 원재료를 준비하세요";
                 return false;
             }
 
@@ -298,7 +310,7 @@ namespace HamPocha.Gameplay
 
             if (_station != null && _station.HasCarriedFood)
             {
-                message = "들고 있는 음식을 서빙하거나 지정 장소에서 폐기하세요.";
+                message = "들고 있는 음식을 서빙하거나 지정 장소에서 폐기하세요";
                 return false;
             }
             if (!CanTakeNewOrders)
@@ -308,7 +320,7 @@ namespace HamPocha.Gameplay
             }
 
             FinishBusiness();
-            message = "영업을 종료했습니다. 결산을 확인하세요.";
+            message = "영업을 종료했습니다. 결산을 확인하세요";
             return true;
         }
 
@@ -327,21 +339,21 @@ namespace HamPocha.Gameplay
         {
             if (region != SceneType.Home)
             {
-                message = "집의 침대에서 취침하세요.";
+                message = "집의 침대에서 취침하세요";
 
                 return false;
             }
 
             if (CurrentActivity != PlayerActivity.FreeRoam)
             {
-                message = "현재 활동을 마친 뒤 취침하세요.";
+                message = "현재 활동을 마친 뒤 취침하세요";
 
                 return false;
             }
 
             if (_worldClock.IsDaytime)
             {
-                message = "밤 00:00~06:00에 취침할 수 있어요.";
+                message = "자정이 지나야 잘 수 있어요";
                 return false;
             }
 

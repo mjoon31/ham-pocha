@@ -8,6 +8,7 @@ namespace HamPocha.Core
         public const int MorningHour = 6;
         public const int OpeningHour = 12;
         private const float TutorialOpeningDeadline = 18f * 3600f;
+        private const float TutorialSleepDeadline = 5f * 3600f;
         private const float SecondsPerDay = 86400f;
         private const float SecondsPerHour = 3600f;
         private const float LightingTransitionSeconds = .85f;
@@ -24,6 +25,7 @@ namespace HamPocha.Core
         private bool _isApplicationPaused;
         private bool _tutorialPaused;
         private bool _tutorialOpeningHold;
+        private bool _tutorialSleepHold;
         private bool _skipNextTick = true;
         // 임시 확인 모드는 조명과 그림자만 바꾸고 실제 시간과 저장에는 쓰지 않는다.
         private float? _lightingPreviewProgress;
@@ -160,9 +162,21 @@ namespace HamPocha.Core
         {
             bool wasDaytime = IsDaytime;
             int previousBusinessDay = BusinessDayNumber;
+            float previousTime = _secondsIntoDay;
             _secondsIntoDay += worldSeconds;
             if (_tutorialOpeningHold && DayNumber == 1)
                 _secondsIntoDay = Mathf.Min(_secondsIntoDay, TutorialOpeningDeadline);
+
+            if (_tutorialSleepHold)
+            {
+                float deadline = wasDaytime ? SecondsPerDay + TutorialSleepDeadline : TutorialSleepDeadline;
+                if (_secondsIntoDay >= deadline)
+                {
+                    _secondsIntoDay = deadline;
+                    if (previousTime != deadline)
+                        Debug.Log("[Gameplay] event=tutorial_sleep_clock result=held hour=05:00", this);
+                }
+            }
 
             while (_secondsIntoDay >= SecondsPerDay)
             {
@@ -200,6 +214,7 @@ namespace HamPocha.Core
         public void AdvanceToMorning()
         {
             if (IsDaytime) return;
+            SetTutorialSleepHold(false);
             _secondsIntoDay = MorningHour * SecondsPerHour;
             Debug.Log($"[Gameplay] event=business_day result=advanced reason=sleep day={BusinessDayNumber}", this);
         }
@@ -244,6 +259,13 @@ namespace HamPocha.Core
             if (_tutorialOpeningHold == hold) return;
             _tutorialOpeningHold = hold;
             Debug.Log($"[Gameplay] event=tutorial_opening_clock result=changed enabled={hold}", this);
+        }
+
+        internal void SetTutorialSleepHold(bool hold)
+        {
+            if (_tutorialSleepHold == hold) return;
+            _tutorialSleepHold = hold;
+            Debug.Log($"[Gameplay] event=tutorial_sleep_clock result=changed enabled={hold}", this);
         }
 
         public float SecondsIntoDay { get { return _secondsIntoDay; } }

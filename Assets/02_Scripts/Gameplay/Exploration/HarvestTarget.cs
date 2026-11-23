@@ -199,7 +199,7 @@ namespace HamPocha.Gameplay
             int amount = YieldCount;
             if (!inventory.TryAdd(_ingredient, amount))
             {
-                message = "재료를 받을 수 없어요. 재료는 이 자리에 남아요.";
+                message = "재료를 받을 수 없어요. 재료는 이 자리에 남아요";
 
                 return false;
             }

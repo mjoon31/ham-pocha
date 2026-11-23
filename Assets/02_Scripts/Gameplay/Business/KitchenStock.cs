@@ -416,30 +416,30 @@ namespace HamPocha.Gameplay
         internal bool TryQueueSkewer(int slot, int menu, out string message, out bool missingIngredients)
         {
             missingIngredients = false;
-            message = "먼저 조리할 꼬치를 지정하세요.";
+            message = "먼저 조리할 꼬치를 지정하세요";
             if (slot < 0 || slot >= Growth.OutdoorCookers(_sales.Progress))
                 return false;
 
             OutdoorCook cook = State.SkewerCooks[slot];
             if (State.Outside[slot].Started || (cook.Started && cook.Selection != menu + 1))
             {
-                message = "화로가 이미 조리 중이에요.";
+                message = "화로가 이미 조리 중이에요";
                 return false;
             }
 
             if (OutdoorCookCount(slot) >= OutdoorCookLimit)
             {
-                message = $"화로마다 최대 {OutdoorCookLimit}개까지 조리할 수 있어요.";
+                message = $"화로마다 최대 {OutdoorCookLimit}개까지 조리할 수 있어요";
                 return false;
             }
             if (!IsSkewerUnlocked(menu))
             {
-                message = "필요한 숲을 먼저 해금하세요.";
+                message = "필요한 숲을 먼저 해금하세요";
                 return false;
             }
             if (State.SkewerDisplay[menu] >= OutdoorDisplayLimit)
             {
-                message = "진열대가 가득 찼어요.";
+                message = "진열대가 가득 찼어요";
                 return false;
             }
             OutdoorRecipe recipe = Skewer(menu);
@@ -460,7 +460,7 @@ namespace HamPocha.Gameplay
             cook.Selection = menu + 1;
             cook.NeedsSelection = false;
             StartSkewer(slot, cook, recipe);
-            message = "꼬치 조리를 시작했어요.";
+            message = "꼬치 조리를 시작했어요";
             return true;
         }
 
@@ -584,12 +584,12 @@ namespace HamPocha.Gameplay
             {
                 _outdoorCompletion[i] = Mathf.Max(0f, _outdoorCompletion[i] - seconds);
                 KitchenCook indoor = State.Inside[i];
-                if (!_sales.IsClosing || HasAcceptedOrder(indoor.Menu)) Advance(indoor, seconds);
+                if (!_sales.IsClosing || HasAcceptedOrder(indoor.Menu)) Advance(indoor, seconds, SfxCue.IndoorCookReady);
                 if (!outdoorOpen) continue;
                 KitchenCook legacy = State.Outside[i];
                 if (legacy.Started)
                 {
-                    Advance(legacy, seconds);
+                    Advance(legacy, seconds, SfxCue.CookReady);
                     if (legacy.Ready && State.Display[legacy.Menu] < OutdoorDisplayLimit)
                     {
                         State.Display[legacy.Menu]++;
@@ -701,6 +701,14 @@ namespace HamPocha.Gameplay
             return count;
         }
 
+        internal bool HasReadyFood(int menu)
+        {
+            if (State.Hand == menu + 5 || Array.IndexOf(State.Food, menu) >= 0) return true;
+            foreach (KitchenCook cook in State.Inside)
+                if (cook.Menu == menu && cook.Ready) return true;
+            return false;
+        }
+
         private void StartCooking(KitchenCook cook)
         {
             cook.Remaining = Recipe(cook.Menu).CookingSeconds;
@@ -709,13 +717,13 @@ namespace HamPocha.Gameplay
             Debug.Log($"[Gameplay] event=kitchen_cooking result=started menu={cook.Menu} seconds={cook.Remaining}");
         }
 
-        private static void Advance(KitchenCook cook, float seconds)
+        private static void Advance(KitchenCook cook, float seconds, SfxCue readyCue)
         {
             if (!cook.Started || cook.Remaining <= 0) return;
             cook.Remaining = Mathf.Max(0, cook.Remaining - seconds);
             if (cook.Ready)
             {
-                Sfx.Play(SfxCue.CookReady);
+                Sfx.Play(readyCue);
                 Debug.Log($"[Gameplay] event=kitchen_cooking result=ready menu={cook.Menu}");
             }
         }

@@ -32,13 +32,13 @@ flowchart TD
     Save --> Loader
     Loader --> Region[SceneRegion: 지역과 도착점 제공]
     Region --> Home[Home / Village / Forest]
-    Loader --> Fade[SceneTransitionFade: 암전과 입력 차단]
+    Loader --> Fade[SceneTransitionFade: 로딩 화면과 입력 차단]
 ```
 
 - Title의 준비·인증 결과와 Main의 지역 준비를 구분한다. 인증과 저장의 내부 판정은 해당 담당 컴포넌트에 둔다.
 - Main은 공통 시스템을 유지하고 지역 씬은 추가 로드한다. `SceneRegion`은 지역 식별과 도착점을 제공하며 전환 정책을 결정하지 않는다.
 - `MainSceneLoader`는 필요한 컴포넌트를 연결하고 최초 지역/저장 복원 진입을 요청한다. 씬 전환 구현이나 저장 규칙 자체를 소유하지 않는다.
-- `SceneTransitionFade`는 검은 화면·대기·입력 차단 표시를 담당한다. 게임 시간과 별개인 전환 시간을 사용한다.
+- `SceneTransitionFade`는 지역 로딩 배경과 입력 차단을 담당한다. 로딩 점 애니메이션과 페이드는 게임 시간과 별개로 진행된다. 수면에는 검은 화면을 보여 준다.
 - Main만 직접 실행하는 개발 흐름과 Title부터 시작하는 계정 저장 흐름을 구분한다.
 
 ## 첫 영업일의 게임 진행

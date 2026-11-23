@@ -12,13 +12,13 @@ namespace HamPocha.UI
 {
     // 저장된 단계와 실제 게임 상태를 함께 확인한다. UI 클릭만으로 성공을 가정하지 않는다.
     [DefaultExecutionOrder(200)]
-    public class TutorialUi : MonoBehaviour
+    public partial class TutorialUi : MonoBehaviour
     {
         private const int CheckSummaryTip = 20;
         private const float GuideBottom = 18f;
         private const float GuideMinHeight = 196f;
         private const float GuideTextPadding = 32f;
-        private const int GuidePageLimit = 3;
+        private const int GuidePageLimit = 2;
         private const float GuideLeft = .215f;
         private const float GuideRight = .75f;
         private const float CursorSize = 91.2f;
@@ -26,15 +26,20 @@ namespace HamPocha.UI
         private const float CursorNearHeight = 28.8f;
         private const float CursorFarHeight = 50.4f;
         private const float EdgeTravel = 18f;
+        private const float EdgeHudBlend = 84f;
+        private const float EdgeSideInset = .07f;
+        private const float EdgeVerticalInset = .13f;
         private const float TouchShadeAlpha = .62f;
         private const float NoticeShadeAlpha = .08f;
         private const float OverviewSpeed = .85f;
         private const float OverviewReturnSeconds = .6f;
         private const float OverviewEdgeInset = .06f;
-        private const float VillageOverviewScale = 2.05f;
+        private const float VillageOverviewScale = 2.7f;
         private const float VillagePanBow = 3.2f;
         private const int ForestEntryNotice = 1;
-        private const string ForestEntryCopy = "1번 숲에서 당근과 빵을 구할 수 있어요. 확인을 누른 뒤 입장하세요.";
+        private enum InterruptNotice { None, ForestExit, MarketTravel, WrongDelivery, SleepTooEarly, FirstDayClosing }
+        private static readonly string FirstForestName = ForestEntryUi.ForestEntryTitle(SceneType.Forest01);
+        private static readonly string ForestEntryCopy = $"{FirstForestName}에서 당근과 빵을 구할 수 있어요. 확인을 누른 뒤 입장할 수 있어요.";
         [SerializeField, Min(0.5f)] private float _panSeconds = 3f;
         [SerializeField, Min(1f)] private float _forestOverviewScale = 1.5f;
         [SerializeField, Min(1f)] private float _marketOverviewScale = 1.6f;
@@ -56,16 +61,18 @@ namespace HamPocha.UI
         private string _guideCopy = "";
         private float _guideWidth;
         private readonly List<string> _guidePages = new List<string>();
-        private readonly TextGenerator _guideLineMeasure = new TextGenerator();
+
         private int _guidePageIndex;
         internal static TutorialUi Current { get; private set; }
         private int _businessTip = -1;
-        private bool _travelNotice;
+        private InterruptNotice _interruptNotice;
         private bool _portalNotice;
         private TutorialInputMask _mask;
         private bool _restrictInput;
+        private float _guideInputResumeAt;
         private Image _shade;
         private TutorialButtonFocus _buttonFocus;
+        private TutorialButtonFocus _confirmFocus;
         private TutorialTouch _joystickTouch;
         private ForestEntryUi _entryUi;
         private ForestRegrowth _gatherRegion;
@@ -81,6 +88,8 @@ namespace HamPocha.UI
         private readonly Vector3[] _uiCorners = new Vector3[4];
         private RectTransform _uiTarget;
         private Transform _worldTarget;
+        private Transform _waypointVisual;
+        private Vector3 _waypointLocalCenter;
         private Camera _waypointCamera;
         private MarketInteractable _market;
         private ForestPortal _forest;
@@ -116,19 +125,31 @@ namespace HamPocha.UI
         {
             get
             {
-                return isActiveAndEnabled && _root != null && State != null && State.Step == 7 &&
-                    (State.ConfirmedPortalNotices & ForestEntryNotice) == 0;
+                return isActiveAndEnabled && _root != null && State != null &&
+                    (FirstDayRound > 0 ? FirstDayRound >= 16 && FirstDayRound < 20 :
+                        State.Step == 7 && (State.ConfirmedPortalNotices & ForestEntryNotice) == 0);
             }
         }
 
-        internal bool RequiresFirstForestTravel => _root != null && State != null && State.Step == 7 &&
-            !State.VisitedFirstForest && (State.ConfirmedGuideSteps & (1 << 8)) == 0;
+        internal bool RequiresFirstForestTravel => _root != null && State != null &&
+            (FirstDayRound > 0 ? FirstDayRound >= 16 && FirstDayRound <= 20 :
+                State.Step == 7 && !State.VisitedFirstForest && (State.ConfirmedGuideSteps & (1 << 8)) == 0);
         internal bool IsIntroducingPocha => _root != null && State != null && (State.Step == 4 || State.Step == 5);
-        internal bool IsPracticingHomePlacement => _root != null && State != null && State.Step == 0 && State.HomeLesson == 2;
-        internal bool BlocksFloatingJoystick => _mask != null && _mask.isActiveAndEnabled && _mask.ExclusiveUi &&
-            _mask.AllowedUi != _input.TutorialJoystick;
-        internal Transform NavigationTarget => _root != null && _root.activeInHierarchy && !_panning &&
-            !_guide.IsOpen && _uiTarget == null ? _worldTarget : null;
+        internal bool IsPracticingHomePlacement => _root != null && State != null && State.Step == 0 &&
+            (FirstDayRound > 0 ? FirstDayRound >= 2 && FirstDayRound <= 9 : State.HomeLesson == 2);
+        internal TutorialSaveData HomePlacementPractice => IsPracticingHomePlacement ? State : null;
+        internal bool IsHomePlacementNoticeOpen => _root != null && _root.activeInHierarchy && State != null &&
+            State.Step == 0 && (FirstDayRound > 0 ? FirstDayRound <= 11 : State.HomeLesson >= 2 && State.HomeLesson <= 4) && _guide.IsOpen;
+        internal bool HoldsHomePlacementInput => IsHomePlacementNoticeOpen ||
+            (_root != null && _root.activeInHierarchy && FirstDayRound is >= 2 and <= 11);
+        private bool GuideInputHandoff => Time.unscaledTime < _guideInputResumeAt;
+        internal bool BlocksPanelDismissal => _root != null && _root.activeInHierarchy &&
+            (GuideInputHandoff || (_guide.IsOpen && _next.gameObject.activeSelf) ||
+                (FirstDayRound > 0 && _mask.isActiveAndEnabled && _mask.ExclusiveUi));
+        internal bool BlocksFloatingJoystick => _mask != null && _mask.isActiveAndEnabled &&
+            (_mask.BlockAll || (_mask.ExclusiveUi && _mask.AllowedUi != _input.TutorialJoystick && _mask.AllowedJoystick == null));
+        internal Transform NavigationTarget => _root != null && _root.activeInHierarchy && (!_panning || GuidesFirstDayForestDuringPan) &&
+            (!_guide.IsOpen || GuidesFirstDayWorldDuringNotice) && _uiTarget == null ? _worldTarget : null;
         internal string NavigationMarker
         {
             get
@@ -143,12 +164,12 @@ namespace HamPocha.UI
             }
         }
 
-        internal void OnIntroMonitorUsed()
+        internal void OnIntroBusinessPanelUsed()
         {
             if (!IsIntroducingPocha || State.PochaLesson != 5) return;
             State.PochaLesson = 6;
             SaveProgress();
-            Debug.Log("[Gameplay] event=tutorial_pocha_monitor result=demonstrated", this);
+            Debug.Log("[Gameplay] event=tutorial_business_panel result=demonstrated", this);
         }
 
         internal void OnMinimapToggled(bool collapsed)
@@ -216,7 +237,7 @@ namespace HamPocha.UI
         {
             UiTextCache.Warm(_cookingUi.TutorialFont, _root.transform,
                 HomeTip + VillageTip + MarketRoute + ForestRoute + ForestCollect + CollectAll +
-                ForestReturn + FirstSale + GrowthMenu + UpgradeTip + OutdoorTip + UnlockTip + FinishTip +
+                ForestReturn + FirstSale + GrowthMenu + UpgradeTip + OutdoorTip + UnlockTip + FinishTip + HelpTip + FirstDaySprintTip +
                 string.Join(" ", PochaKitchen.BusinessTips) +
                 ForestEntryCopy + "확인 모든 재료 모으기 나가기 버튼을 눌러 마을로 돌아가세요. 표시된 출구로 이동해 마을로 돌아가세요. " +
                 Inventory.GetIngredientName(IngredientType.Carrot) + Inventory.GetIngredientName(IngredientType.Bread));
@@ -224,24 +245,28 @@ namespace HamPocha.UI
 
         private const string HomeTip = "이곳은 햄스터의 집이에요. 가구와 소품을 원하는 위치에 배치해 꾸밀 수 있어요.";
         private const string VillageTip = "여기가 마을이에요. 포차 위치를 둘러볼게요.";
-        private const string MarketRoute = "표시된 포차로 이동하세요. 포차 앞에서 상호작용하면 안으로 들어갈 수 있어요.";
+        private const string MarketRoute = "표시된 포차로 이동하세요. 포차 가까이에서 상호작용하면 안으로 들어갈 수 있어요.";
         private const string ForestRoute = "확인 후 표시된 숲 입구로 이동하세요.";
         private const string ForestCollect = "미니맵에는 출입구와 재료, 몬스터 위치가 보여요. 지도를 터치하면 접히고 버튼으로 다시 펼 수 있어요. 밤에 숲에 들어오면 몬스터가 난폭해져요.";
-        private const string CollectAll = "당근에 다가가 상호작용으로 채집하세요. 몽실이는 공격해서 빵을 얻을 수 있어요. 미니맵 아래의 목표 수량을 모두 채워 보세요.";
+        private const string CollectAll = "당근에 다가가 상호작용으로 채집하세요. 크루상을 공격하면 빵을 얻을 수 있어요. 미니맵 아래의 목표 수량을 모두 채워 보세요.";
         private const string ForestReturn = "재료를 모두 모았어요! 표시된 출구로 이동한 뒤 포차로 돌아가세요.";
         private const string FirstSale = "첫 실내 서빙을 마쳤어요! 주문한 음식을 건네면 골드와 판매 경험치를 받아요.";
         private const string GrowthMenu = "성장·해금 메뉴를 열어 당근 수프를 강화해보세요.";
         private const string UpgradeTip = "당근 수프의 첫 강화(레벨 1 → 2)는 무료예요.";
         private const string OutdoorTip = "야시장은 햄스터 레벨 5와 5,000골드로 해금할 수 있어요. 야외 시점으로 전환해 둘러볼게요.";
         private const string UnlockTip = "세 번째 음식은 당근 수프와 바삭 토스트가 각각 레벨 5여야 해요. 그다음부터는 직전 음식 레벨 10이 필요해요. 해금 비용은 성장 메뉴에서 확인하세요. 재료 숲도 함께 열려요.";
+        private const string GrowthScrollTip = "성장 목록을 아래로 내려 야시장 항목을 찾아보세요.";
+        private const string HomeAtMidnightTip = "자정이 됐어요. 집으로 돌아가 잠을 자 보세요.";
+        private const string BedRecoveryTip = "이제 잠을 자서 피로를 회복할 수 있어요.";
         private const string FinishTip = "튜토리얼을 완료했어요! 보상으로 100골드를 받았어요.";
+        private const string HelpTip = "지금까지 튜토리얼로 알아본 게임 조작법은 / 메뉴 버튼을 눌러서 도움말에서 확인할 수 있어요";
         private static readonly string[] FacilityTips =
         {
-            "이곳은 영업 모니터예요. 영업 상태를 확인할 수 있어요.",
+            "오른쪽 영업 버튼으로 오늘의 판매량을 확인할 수 있어요.",
             "이곳은 냉장고예요. 채집한 재료를 일괄 보관하고 요리에 쓸 재료를 한 개씩 꺼낼 수 있어요.",
             "이곳은 임시 보관대예요. 음식이나 들고 있는 재료를 한 칸에 하나씩, 총 5칸까지 보관할 수 있어요.",
             "이곳은 조리대예요. 레시피에 필요한 재료를 모두 넣으면 자동으로 조리가 시작돼요.",
-            "다시 영업 모니터예요. 가까이에서 상호작용을 눌러 보세요."
+            "오른쪽 영업 버튼을 눌러 햄포차 패널을 열어 보세요."
         };
 
         private RectTransform CreateRect(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size)
@@ -293,6 +318,7 @@ namespace HamPocha.UI
             _shade.gameObject.SetActive(false);
             RectTransform buttonFocus = CreateRect("ButtonFocus", root, Vector2.one * .5f, Vector2.zero, Vector2.zero);
             _buttonFocus = new TutorialButtonFocus(buttonFocus);
+            _confirmFocus = new TutorialButtonFocus(buttonFocus);
             RectTransform box = CreateRect("Guide", root, new Vector2(GuideLeft, 0), Vector2.up * GuideBottom, new Vector2(0, GuideMinHeight));
             box.anchorMax = new Vector2(GuideRight, 0);
             box.pivot = new Vector2(.5f, 0f);
@@ -310,7 +336,7 @@ namespace HamPocha.UI
             _message.color = UiSkin.Ink;
             _message.fontSize = 32;
             _message.resizeTextForBestFit = false;
-            _message.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _message.horizontalOverflow = HorizontalWrapMode.Overflow;
             _message.verticalOverflow = VerticalWrapMode.Truncate;
             RectTransform next = CreateRect("Continue", box, Vector2.right, new Vector2(-111, 45), new Vector2(154, 59) * 1.1f);
             Image image = next.gameObject.AddComponent<Image>();
@@ -352,10 +378,12 @@ namespace HamPocha.UI
             if (_root == null) return;
             _clock?.SetTutorialOpeningHold(State != null && State.Step < 21 &&
                 _session != null && _session.BusinessSequence == 0);
+            _clock?.SetTutorialSleepHold(NeedsTutorialSleepHold());
             if (State == null || State.Step == 21)
             {
                 _root.SetActive(false);
                 _quest.SetVisible(false);
+                _loader.SetTutorialMovementBlocked(false);
                 if (_clock != null) _clock.SetTutorialPaused(false);
                 return;
             }
@@ -383,6 +411,11 @@ namespace HamPocha.UI
             }
 
             if (!_hasRegion || _region != _loader.CurrentScene) RefreshRegion();
+            if (_interruptNotice != InterruptNotice.None)
+            {
+                PresentInterruptNotice();
+                return;
+            }
             if (_openingReminder || (_clock != null && _clock.AtTutorialOpeningDeadline && !State.OpeningReminderSeen))
             {
                 _openingReminder = true;
@@ -390,16 +423,9 @@ namespace HamPocha.UI
                 PresentLesson("포차로 돌아가 영업을 시작해 주세요. 영업을 열면 시간이 다시 흘러요.");
                 return;
             }
-            if (_travelNotice)
+            if (FirstDayRound > 0)
             {
-                SetExhibit(null);
-                _root.SetActive(true);
-                _guide.SetVisible(true);
-                _next.gameObject.SetActive(true);
-                SetGuideText(_region == SceneType.Forest01
-                    ? "재료를 모두 모은 뒤에 숲에서 나갈 수 있어요."
-                    : "표시된 포차로 먼저 이동해 주세요.");
-                ApplyFocus(true, true);
+                UpdateFirstDay();
                 return;
             }
             _lessonNotice = false;
@@ -478,6 +504,16 @@ namespace HamPocha.UI
             }
         }
 
+        private bool NeedsTutorialSleepHold()
+        {
+            TutorialSaveData state = State;
+            if (state == null || state.Step >= 21 || state.CompletedTutorialSleep ||
+                _session == null || _session.BusinessSequence == 0) return false;
+
+            return state.FirstDayRound is >= 62 and <= 100 ||
+                state.FirstDayRound == 0 && state.Step == 20 && state.ClosingLesson is 5 or 6;
+        }
+
         private void UpdateForestGuide()
         {
             HarvestTarget selected = _interaction.TutorialHarvestTarget;
@@ -503,6 +539,12 @@ namespace HamPocha.UI
 
         internal void OnForestGuideUsed(HarvestTarget target)
         {
+            if (FirstDayRound == 30)
+            {
+                if (target.IsMonster) State.ForestMonsterFocusSeen = true;
+                else State.ForestGatherFocusSeen = true;
+                SaveProgress();
+            }
             if (_forestFocusTarget != target) return;
             _forestFocusTarget = null;
             _uiTarget = null;
@@ -575,10 +617,15 @@ namespace HamPocha.UI
                 case 2:
                     if (MirrorPlaced(room))
                     {
+                        State.HomePlacementStage = 0;
                         State.HomeLesson = 3;
                         SaveProgress();
                     }
-                    else PresentAction(_homePlacement?.TutorialMirrorTarget());
+                    else
+                    {
+                        _homePlacement?.RestoreTutorialPractice(State);
+                        PresentAction(_homePlacement?.TutorialMirrorTarget());
+                    }
                     break;
                 case 3: PresentLesson("배치한 물건은 터치한 뒤 보관할 수 있어요. 시점 버튼을 다시 눌러 배치 모드를 나가세요."); break;
                 case 4:
@@ -650,10 +697,9 @@ namespace HamPocha.UI
                 PresentLesson(FacilityTips[page], kitchen.TutorialFacility(page), kitchen.InteriorCamera);
                 return;
             }
-            if (page == 5) PresentWorldAction(kitchen.TutorialFacility(0), kitchen.InteriorCamera);
+            if (page == 5) PresentAction(kitchen.IsBusinessPanelOpen ? null : kitchen.TutorialBusinessButton);
             else if (page == 6)
-                PresentLesson("모니터에서 영업을 시작하거나 마감할 수 있어요. 정오부터 개점할 수 있고, 자정부터는 새 주문을 받지 않아요. 받은 주문을 처리하면 자동으로 마감해요. 직접 마감하면 당일 재개점은 불가능해요. 이제 밖으로 나가 1번 숲에서 당근과 빵을 모아 오세요.",
-                    kitchen.TutorialFacility(0), kitchen.InteriorCamera);
+                PresentLesson($"영업 패널에서 영업을 시작하거나 마감할 수 있어요. 정오부터 개점할 수 있고, 자정부터는 새 주문을 받지 않아요. 받은 주문을 처리하면 자동으로 마감해요. 직접 마감하면 당일 재개점은 불가능해요. 이제 {FirstForestName}으로 가서 영업 준비에 필요한 재료를 모아 보세요!");
             else PresentWorldAction(kitchen.TutorialExit, kitchen.InteriorCamera);
         }
 
@@ -662,7 +708,7 @@ namespace HamPocha.UI
             PochaKitchen kitchen = PochaKitchen.Current;
             switch (State.ClosingLesson)
             {
-                case 0: PresentLesson(UnlockTip + "\n" + OutdoorTip); break;
+                case 0: UpdateMarketIntro(); break;
                 case 1:
                     if (kitchen != null && !kitchen.IsInside && _region == SceneType.Village)
                     {
@@ -689,9 +735,9 @@ namespace HamPocha.UI
                     else PresentAction(kitchen?.TutorialViewTarget, BuildingWaypoint(home: false));
                     break;
                 case 5:
-                    if (!State.NoticeClosed) PresentLesson("이제 영업 시간 동안 자유롭게 영업해 보세요. 영업 중에는 포차 영업권 안에서 이동할 수 있어요. 모니터에서 직접 마감할 수도 있어요.");
+                    if (!State.NoticeClosed) PresentLesson("이제 영업 시간 동안 자유롭게 영업해 보세요. 영업 중에는 포차 영업권 안에서 이동할 수 있어요. 영업 패널에서 직접 마감할 수도 있어요.");
                     else if (_session.CurrentActivity == PlayerActivity.Business || _station.SummaryPending)
-                        PresentAction(AccountConfirmUi.TutorialBusinessAction);
+                        PresentAction(kitchen?.TutorialBusinessAction);
                     else
                     {
                         State.ClosingLesson = 6;
@@ -707,21 +753,51 @@ namespace HamPocha.UI
                     }
                     else UpdateSleepLesson(kitchen);
                     break;
+                case 8:
+                    PresentLesson(HelpTip);
+                    break;
                 default:
                     PresentLesson(FinishTip + (State.TutorialFurnitureGranted
-                        ? " 가구 창고에서 책상 2개와 소파 1개를 확인할 수 있어요."
+                        ? " 가구 창고에서 책상·의자·소파를 한 개씩 확인할 수 있어요."
                         : " 보상 가구는 창고에 빈 슬롯이 3개 생기면 받을 수 있어요."));
                     break;
             }
         }
 
-        private void UpdateSleepLesson(PochaKitchen kitchen)
+        private void UpdateMarketIntro()
         {
-            if (!State.NoticeClosed)
+            if (_station.SummaryPending)
             {
-                PresentLesson("자정 이후에는 집 침대에서 잘 수 있어요. 자고 나면 피로를 20 회복하고 아침 06:00이 돼요.");
+                PresentAction(null);
                 return;
             }
+            if (!State.GrowthMarketScrollInstructed)
+            {
+                PresentLesson(UnlockTip + "\n" + GrowthScrollTip);
+                return;
+            }
+            if (State.GrowthMarketRowSeen)
+            {
+                PresentLesson(OutdoorTip);
+                return;
+            }
+            if (!_contentUi.IsOpen)
+            {
+                PresentAction(_contentUi.TutorialTarget(false));
+                return;
+            }
+            if (!_contentUi.IsMarketRowVisible)
+            {
+                PresentAction(null);
+                return;
+            }
+            State.GrowthMarketRowSeen = true;
+            SaveProgress();
+            PresentLesson(OutdoorTip);
+        }
+
+        private void UpdateSleepLesson(PochaKitchen kitchen)
+        {
             if (_clock.IsDaytime || _session.CurrentActivity == PlayerActivity.Sleeping)
             {
                 PresentAction(null);
@@ -730,9 +806,15 @@ namespace HamPocha.UI
             if (_region == SceneType.Home)
             {
                 SleepInteractable bed = _loader.CurrentRegion.GetComponentInChildren<SleepInteractable>();
+                if (!State.BedRecoveryGuideSeen)
+                {
+                    PresentLesson(BedRecoveryTip, bed != null ? bed.transform : null);
+                    return;
+                }
                 RectTransform button = bed != null && _interaction.CanInteractWithBed(bed) ? _input.TutorialInteract : null;
                 PresentAction(button, bed != null ? bed.transform : null);
             }
+            else if (!State.BedRecoveryGuideSeen && !State.SleepReturnGuideSeen) PresentLesson(HomeAtMidnightTip);
             else if (kitchen != null && kitchen.IsInside) PresentWorldAction(kitchen.TutorialExit, kitchen.InteriorCamera);
             else PresentAction(null, BuildingWaypoint(home: true));
         }
@@ -786,7 +868,9 @@ namespace HamPocha.UI
             _root.SetActive(true);
             if (summary) _root.transform.SetAsLastSibling();
             _quest.SetVisible(false);
-            _uiTarget = AccountConfirmUi.TutorialBusinessAction ?? kitchen?.TutorialWheelTarget;
+            _uiTarget = kitchen?.TutorialBusinessAction ?? kitchen?.TutorialWheelTarget;
+            if (!summary && !outside && tip == 6 && !kitchen.IsBusinessPanelOpen && _uiTarget == null)
+                _uiTarget = kitchen.TutorialBusinessButton;
             _worldTarget = !summary && outside ? BuildingWaypoint(home: false) : kitchen?.BusinessTipTarget(tip);
             _waypointCamera = kitchen != null && kitchen.IsInside ? kitchen.InteriorCamera : null;
             bool show = _businessTip >= 0;
@@ -820,25 +904,53 @@ namespace HamPocha.UI
         internal bool BlockTravel(SceneType destination)
         {
             if (_root == null || State == null || _loader.CurrentScene == destination) return false;
-            bool gathering = _loader.CurrentScene == SceneType.Forest01 && State.Step >= 8 && State.Step <= 9 && !HarvestComplete();
+            if (FirstDayRound > 0) return BlockFirstDayTravel(destination);
+            bool gathering = _loader.CurrentScene == SceneType.Forest01 && State.Step >= 7 && State.Step <= 9 && !HarvestComplete();
             bool goingToMarket = _loader.CurrentScene == SceneType.Village && SceneLoadManager.IsForest(destination) &&
                 State.Step >= 1 && State.Step <= 5;
             bool homeLesson = _loader.CurrentScene == SceneType.Home && State.Step == 0 && State.HomeLesson < 6;
             if (homeLesson) return true;
             if (!gathering && !goingToMarket) return false;
 
-            int notice = gathering ? 1 : 2;
-            if ((State.ConfirmedTravelNotices & notice) == 0 && !_travelNotice)
-            {
-                _travelNotice = true;
-                _root.SetActive(true);
-                _next.gameObject.SetActive(true);
-                SetGuideText(gathering ? "재료를 모두 모은 뒤에 숲에서 나갈 수 있어요." : "표시된 포차로 먼저 이동해 주세요.");
-                _guide.SetVisible(true);
-                ApplyFocus(true, true);
-                Debug.Log($"[Gameplay] event=tutorial_travel result=blocked target={destination} remaining_harvest={gathering}", this);
-            }
+            OpenInterruptNotice(gathering ? InterruptNotice.ForestExit : InterruptNotice.MarketTravel);
             return true;
+        }
+
+        internal void OnWrongDelivery()
+        {
+            if (_root != null && State != null && State.Step >= 11 && State.Step <= 16)
+                OpenInterruptNotice(InterruptNotice.WrongDelivery);
+        }
+
+        internal bool ShowEarlySleepNotice()
+        {
+            if (_root == null || State == null || State.Step >= 21) return false;
+            OpenInterruptNotice(InterruptNotice.SleepTooEarly);
+            return true;
+        }
+
+        private void OpenInterruptNotice(InterruptNotice notice)
+        {
+            if (_root == null || _interruptNotice != InterruptNotice.None) return;
+            _interruptNotice = notice;
+            PresentInterruptNotice();
+            _guidePageIndex = 0;
+            ShowGuidePage();
+            Debug.Log($"[UI] event=tutorial_interrupt result=shown notice={notice}", this);
+        }
+
+        private void PresentInterruptNotice()
+        {
+            string copy;
+            switch (_interruptNotice)
+            {
+                case InterruptNotice.ForestExit: copy = "재료를 모두 모은 뒤에 숲에서 나갈 수 있어요. 남은 재료를 모아 보세요."; break;
+                case InterruptNotice.MarketTravel: copy = "표시된 포차로 먼저 이동해 주세요."; break;
+                case InterruptNotice.WrongDelivery: copy = "오배송을 했어요. 투입한 재료를 잃고 정산을 받지 못해요."; break;
+                case InterruptNotice.FirstDayClosing: copy = "첫 영업은 자정까지 이어가 보세요!"; break;
+                default: copy = "자정부터 수면할 수 있어요."; break;
+            }
+            PresentLesson(copy);
         }
 
         private void RefreshFocus()
@@ -887,76 +999,26 @@ namespace HamPocha.UI
         {
             _guidePages.Clear();
             var page = new List<string>(GuidePageLimit);
-            int sentences = 0;
-            bool previousShort = false;
-            foreach (string paragraph in text.Split('\n'))
+            foreach (string paragraph in text.Split('/', '\n'))
             {
-                previousShort = false;
                 string[] parts = Regex.Split(paragraph, @"(?<=[.!?])(?:[ \t]+(?=\S)|(?=[가-힣]))");
                 foreach (string part in parts)
                 {
-                    string sentence = part.Trim();
+                    string sentence = UiSkin.TrimNoticeLine(part.Trim());
                     if (sentence.Length == 0) continue;
-                    if (sentences == GuidePageLimit)
-                    {
+                    string[] lines = UiSkin.WrapNoticeText(_message, sentence, width).Split('\n');
+                    if (page.Count > 0 && page.Count + lines.Length > GuidePageLimit)
                         FlushGuidePage(page);
-                        previousShort = false;
-                        sentences = 0;
-                    }
-                    List<string> lines = MeasureGuideLines(sentence, width);
-                    if (previousShort && lines.Count == 1 && page.Count > 0)
-                    {
-                        string joined = page[page.Count - 1] + " " + sentence;
-                        if (MeasureGuideLines(joined, width).Count == 1)
-                        {
-                            page[page.Count - 1] = joined;
-                            previousShort = false;
-                            sentences++;
-                            continue;
-                        }
-                    }
-                    if (page.Count > 0 && page.Count + lines.Count > GuidePageLimit)
-                    {
-                        FlushGuidePage(page);
-                        sentences = 0;
-                    }
                     foreach (string line in lines)
                     {
                         if (page.Count == GuidePageLimit)
-                        {
                             FlushGuidePage(page);
-                            sentences = 0;
-                        }
                         page.Add(line);
                     }
-                    sentences++;
-                    previousShort = lines.Count == 1;
                 }
             }
             FlushGuidePage(page);
             if (_guidePages.Count == 0) _guidePages.Add("");
-        }
-
-        private List<string> MeasureGuideLines(string text, float width)
-        {
-            var lines = new List<string>();
-            TextGenerationSettings settings = _message.GetGenerationSettings(new Vector2(width, 0f));
-            settings.scaleFactor = 1f;
-            settings.generateOutOfBounds = true;
-            if (width <= 0f || _message.font == null || !_guideLineMeasure.Populate(text, settings))
-            {
-                lines.Add(text);
-                return lines;
-            }
-            for (int i = 0; i < _guideLineMeasure.lineCount; i++)
-            {
-                int start = _guideLineMeasure.lines[i].startCharIdx;
-                int end = i + 1 < _guideLineMeasure.lineCount ? _guideLineMeasure.lines[i + 1].startCharIdx : text.Length;
-                end = Mathf.Min(end, text.Length);
-                if (start < end) lines.Add(text.Substring(start, end - start).Trim());
-            }
-            if (lines.Count == 0) lines.Add(text);
-            return lines;
         }
 
         private void FlushGuidePage(List<string> lines)
@@ -981,11 +1043,14 @@ namespace HamPocha.UI
             if (_guide.gameObject.activeSelf) LayoutGuide(bounds);
             _quest.Align(new Vector2(bounds.xMin, bounds.yMax));
             bool explanation = _guide.IsOpen && _next.gameObject.activeSelf;
-            bool outdoorTour = State != null && State.Step == 20 && State.ClosingLesson >= 2 && State.ClosingLesson <= 4;
-            if (_clock != null) _clock.SetTutorialPaused(explanation || outdoorTour);
+            bool outdoorTour = FirstDayRound > 0 ? FirstDayRound >= 90 && FirstDayRound <= 96 :
+                State != null && State.Step == 20 && State.ClosingLesson >= 2 && State.ClosingLesson <= 4;
+            if (_clock != null) _clock.SetTutorialPaused(explanation || GuideInputHandoff || outdoorTour || FirstDayRound > 0 && _panning);
             _restrictInput = restrict;
             UpdateInputMask(FocusedControl(explanation), explanation);
-            _loader.SetTutorialMovementBlocked(blockMovement);
+            if (FirstDayRound > 0 && !_loader.NeedsHomeNickname)
+                ApplyFirstDayMovement(explanation);
+            else _loader.SetTutorialMovementBlocked(blockMovement);
         }
 
         private RectTransform FocusedControl(bool explanation)
@@ -995,15 +1060,47 @@ namespace HamPocha.UI
 
         private void UpdateInputMask(RectTransform control, bool explanation)
         {
+            _mask.BlockAll = GuideInputHandoff;
+            bool firstDay = FirstDayRound > 0;
+            bool movementGuide = firstDay ? _firstDayMoves && !_firstDayFree : control == _input.TutorialJoystick;
+            bool allowMovementControls = movementGuide && !explanation && !_panning &&
+                !_mask.BlockAll && !_loader.NeedsHomeNickname;
+            RectTransform sprint = allowMovementControls ? _sprintControl : null;
+            RectTransform menu = allowMovementControls ? _villageHud?.TutorialMenuControl : null;
+            if (Debug.isDebugBuild && (_mask.AllowedSprint != sprint || _mask.AllowedMenu != menu))
+                Debug.Log($"[UI] event=tutorial_movement_controls result={(allowMovementControls ? "allowed" : "released")} sprint={sprint != null} menu={menu != null}", this);
+            _mask.AllowedSprint = sprint;
+            _mask.AllowedMenu = menu;
+            if (_mask.BlockAll)
+            {
+                _mask.gameObject.SetActive(true);
+                return;
+            }
+            if (firstDay && !_loader.NeedsHomeNickname)
+            {
+                UpdateFirstDayInput(control, explanation);
+                return;
+            }
             if (Debug.isDebugBuild && (_mask.ExclusiveUi != (control != null) || control != null && _mask.AllowedUi != control))
                 Debug.Log($"[UI] event=tutorial_input_focus result={(control != null ? "restricted" : "released")} target={control?.name}", this);
             _mask.ExclusiveUi = control != null;
             _mask.AllowedUi = _panning ? null : explanation ? (RectTransform)_next.transform : control;
             _mask.EditableField = control != null && _loader.NeedsHomeNickname ? _villageHud?.TutorialNicknameInput : null;
-            _mask.DismissPanel = null;
+            bool wheel = control != null && IsGuidedKitchenWheel;
+            _mask.AllowedJoystick = wheel ? _input.TutorialJoystick : null;
+            _mask.AllowedConfirm = wheel ? KitchenConfirmFocus : null;
+            PochaKitchen kitchen = PochaKitchen.Current;
+            _mask.DismissPanel = control != null && control == kitchen?.TutorialBusinessAction
+                ? kitchen.BusinessPanelCard : null;
             _mask.AllowedWorld = null;
             _mask.gameObject.SetActive(_restrictInput || control != null);
         }
+
+        private bool IsGuidedKitchenWheel => State != null && State.Step >= 11 && State.Step <= 16 &&
+            PochaKitchen.Current != null && PochaKitchen.Current.HasWheel;
+
+        private RectTransform KitchenConfirmFocus => IsGuidedKitchenWheel && PochaKitchen.Current.HasSelectedTutorialWheelSlot
+            ? _input.TutorialInteract : null;
 
         private void LayoutGuide(Rect bounds)
         {
@@ -1098,7 +1195,7 @@ namespace HamPocha.UI
                 case 2:
                 case 3: text = MarketRoute; _worldTarget = _market == null ? null : _market.InteractionPoint; break;
                 case 6:
-                    text = "1번 숲 입구를 확인하세요.";
+                    text = $"{FirstForestName} 입구를 확인하세요.";
                     _worldTarget = _forest == null ? null : _forest.transform;
                     if (NoticeClosed) PanToWaypoint(7);
                     break;
@@ -1124,7 +1221,9 @@ namespace HamPocha.UI
 
         private void Continue()
         {
-            if (!_guide.IsOpen || !_next.gameObject.activeSelf) return;
+            if (!_guide.IsOpen || !_next.gameObject.activeSelf || GuideInputHandoff) return;
+            _guideInputResumeAt = Time.unscaledTime + PanelMotion.Duration;
+            UpdateInputMask(null, true);
             if (_guidePageIndex + 1 < _guidePages.Count)
             {
                 _guidePageIndex++;
@@ -1133,7 +1232,18 @@ namespace HamPocha.UI
                 return;
             }
             Sfx.Play(SfxCue.MenuClose);
-            if (_clock != null) _clock.SetTutorialPaused(false);
+            if (_interruptNotice != InterruptNotice.None)
+            {
+                Debug.Log($"[UI] event=tutorial_interrupt result=confirmed notice={_interruptNotice}", this);
+                _interruptNotice = InterruptNotice.None;
+                _lessonNotice = false;
+                // 접히는 동안 기본 단계 문구가 같은 패널에서 한 번 더 보이지 않게 한다.
+                _guide.SetImmediate(false);
+                _next.gameObject.SetActive(false);
+                _shownStep = -1;
+                ApplyFocus(false, false);
+                return;
+            }
             if (_openingReminder)
             {
                 _openingReminder = false;
@@ -1145,19 +1255,14 @@ namespace HamPocha.UI
                 SaveProgress();
                 return;
             }
+            if (FirstDayRound > 0)
+            {
+                ConfirmFirstDayNotice();
+                return;
+            }
             if (_lessonNotice)
             {
                 ContinueLesson();
-                return;
-            }
-            if (_travelNotice)
-            {
-                State.ConfirmedTravelNotices |= _loader.CurrentScene == SceneType.Forest01 ? 1 : 2;
-                _guide.SetVisible(false);
-                SaveProgress();
-                _travelNotice = false;
-                _shownStep = -1;
-                ApplyFocus(false, false);
                 return;
             }
             if (_portalNotice)
@@ -1207,12 +1312,28 @@ namespace HamPocha.UI
             }
             else if (State.Step == 20)
             {
-                if (State.ClosingLesson == 7)
+                if (State.ClosingLesson == 8)
                 {
                     MoveTo(21);
                     _root.SetActive(false);
                 }
-                else if (State.ClosingLesson >= 5) State.NoticeClosed = true;
+                else if (State.ClosingLesson == 7)
+                {
+                    State.ClosingLesson = 8;
+                    Debug.Log("[UI] event=tutorial_help result=reward_confirmed", this);
+                }
+                else if (State.ClosingLesson == 6)
+                {
+                    if (_region == SceneType.Home) State.BedRecoveryGuideSeen = true;
+                    else State.SleepReturnGuideSeen = true;
+                    Debug.Log($"[UI] event=tutorial_sleep_guide result=confirmed region={_region}", this);
+                }
+                else if (State.ClosingLesson == 5) State.NoticeClosed = true;
+                else if (State.ClosingLesson == 0 && !State.GrowthMarketScrollInstructed)
+                {
+                    State.GrowthMarketScrollInstructed = true;
+                    Debug.Log("[UI] event=tutorial_growth_scroll result=instructed", this);
+                }
                 else
                 {
                     State.ClosingLesson++;
@@ -1263,10 +1384,11 @@ namespace HamPocha.UI
             {
                 Transform pond = region.Find("VillagePark/PondGarden/PondFootprint");
                 if (pond != null) center = pond.position;
-                if (_market != null) center = Vector3.Lerp(_market.transform.position, center, .64f);
+                if (_market != null) center = Vector3.Lerp(_market.transform.position, center, .95f);
+                center += Vector3.ProjectOnPlane(_camera.transform.forward, Vector3.up).normalized * 4.5f;
             }
             center.y = _loader.PlayerBody.position.y;
-            Pan(center, next, village ? VillageOverviewScale : _forestOverviewScale, ground, village ? VillagePanBow : 0f);
+            Pan(center, next, village ? VillageOverviewScale : Mathf.Max(2.25f, _forestOverviewScale), ground, village ? VillagePanBow : 0f);
         }
 
         private void Pan(Vector3 target, int next, float overviewScale = 1f, BoxCollider ground = null, float bow = 0f)
@@ -1296,6 +1418,14 @@ namespace HamPocha.UI
             _loader.SetTutorialMovementBlocked(true);
             float duration = _panDuration + 1f + (ground != null ? OverviewReturnSeconds : 0f);
             while (Time.unscaledTime - _panStarted < duration && !_loader.IsTransitioning) yield return null;
+            if (FirstDayRound == 92 && next == 93 && !_loader.IsTransitioning)
+            {
+                _panning = false;
+                _panRoutine = null;
+                _firstDayOutdoorFrame = true;
+                MoveFirstDay(next);
+                yield break;
+            }
             RestoreCamera();
             if (_loader.IsTransitioning)
             {
@@ -1303,6 +1433,11 @@ namespace HamPocha.UI
                 yield break;
             }
 
+            if (FirstDayRound > 0)
+            {
+                MoveFirstDay(next);
+                yield break;
+            }
             if (next == 8) _forestPreviewShown = true;
             if (next == 20 && State.ClosingLesson == 2) _outdoorPreviewShown = true;
             MoveTo(next);
@@ -1333,7 +1468,8 @@ namespace HamPocha.UI
 
         private void LateUpdate()
         {
-            if (_panning && (_loader.IsMenuPaused || _loader.IsSessionBlocked || _loader.IsTransitioning))
+            if (UpdateForestDiscoveryCamera()) return;
+            if ((_panning || _firstDayOutdoorFrame) && (_loader.IsMenuPaused || _loader.IsSessionBlocked || _loader.IsTransitioning))
             {
                 if (_panRoutine != null) StopCoroutine(_panRoutine);
                 RestoreCamera();
@@ -1343,16 +1479,23 @@ namespace HamPocha.UI
             {
                 InteractionOutline.ShowTutorial(null);
                 _buttonFocus?.Show(null, default);
+                _confirmFocus?.Show(null, default);
                 return;
             }
             float noticeAlpha = NoticeShadeAlpha;
+            if (_firstDayOutdoorFrame)
+            {
+                _camera.transform.position = _panTo;
+                _camera.orthographicSize = _panSize;
+            }
             if (_panning)
             {
                 float elapsed = Time.unscaledTime - _panStarted;
                 float t = Mathf.SmoothStep(0, 1, elapsed / _panDuration);
                 if (_panGround != null && elapsed > _panDuration + 1f)
                     t = Mathf.SmoothStep(1, 0, (elapsed - _panDuration - 1f) / OverviewReturnSeconds);
-                _camera.transform.position = Vector3.Lerp(_panFrom, _panTo, t) + _panBow * (4f * t * (1f - t));
+                float travel = _panGround != null && _panBow == Vector3.zero ? 1f - (1f - t) * (1f - t) : t;
+                _camera.transform.position = Vector3.Lerp(_panFrom, _panTo, travel) + _panBow * (4f * t * (1f - t));
                 if (_panBow != Vector3.zero)
                 {
                     float alpha = Mathf.SmoothStep(1f, 0f, elapsed / PanelMotion.Duration);
@@ -1367,23 +1510,36 @@ namespace HamPocha.UI
             bool notice = _guide.IsOpen && _next.gameObject.activeSelf;
             Camera eventCamera = _canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : _canvas.worldCamera;
             RectTransform touchTarget = FocusedControl(notice);
+            RectTransform visualControl = notice ? _firstDayNoticeFocus : touchTarget;
+            if (visualControl != null && !visualControl.gameObject.activeInHierarchy) visualControl = null;
             bool touch = touchTarget != null;
             UpdateInputMask(touchTarget, notice);
             bool exhibit = notice && !_panning && _exhibit != null;
             bool forestFocus = touch && _forestFocusTarget != null;
             Camera waypointCamera = _waypointCamera != null ? _waypointCamera : _camera;
-            bool moving = _worldTarget != null && !_panning && !notice && !_loader.IsUiOpen;
+            bool moving = _worldTarget != null && (!_panning || GuidesFirstDayForestDuringPan) &&
+                (!notice || GuidesFirstDayWorldDuringNotice) && !_loader.IsUiOpen;
             Transform visual = moving ? WorldVisual(_worldTarget) : null;
             if (forestFocus) visual = _forestFocusTarget.OutlineTarget;
-            bool dimWorld = exhibit || touch && visual != null;
-            bool worldFocus = InteractionOutline.ShowTutorial(exhibit ? _exhibit : visual,
-                exhibit ? _exhibitCamera ?? _camera : waypointCamera, dimWorld ? TouchShadeAlpha : 0f);
+            bool freshGuideGroup = FirstDayRound > 0 && _firstDayWorldGroup != null;
+            bool dimWorld = exhibit || touch && visual != null || freshGuideGroup;
+            Transform focusTarget = exhibit ? _exhibit : visual;
+            Transform[] focusGroup = freshGuideGroup ? _firstDayWorldGroup : null;
+            if (focusGroup == null && _forest != null && focusTarget == _forest.TutorialVisual)
+                focusGroup = _forest.TutorialFocusGroup;
+            bool worldFocus = InteractionOutline.ShowTutorial(focusTarget,
+                exhibit ? _exhibitCamera ?? _camera : waypointCamera, dimWorld ? TouchShadeAlpha : 0f,
+                focusGroup);
             _shade.gameObject.SetActive((touch || _mask.gameObject.activeSelf) && (!dimWorld || !worldFocus));
-            _shade.color = new Color(0f, 0f, 0f, touch ? TouchShadeAlpha : noticeAlpha);
-            _buttonFocus.Show(touch ? touchTarget : null, touch ? ScreenRect(touchTarget, eventCamera) : default);
-            if (touch)
+            _shade.color = new Color(0f, 0f, 0f,
+                touch || notice && _firstDayNoticeFocus != null ? TouchShadeAlpha : noticeAlpha);
+            _buttonFocus.Show(visualControl, visualControl != null ? ScreenRect(visualControl, eventCamera) : default);
+            RectTransform confirm = FirstDayRound > 0 ? _firstDaySecond :
+                touch ? KitchenConfirmFocus : null;
+            _confirmFocus.Show(confirm, confirm != null ? ScreenRect(confirm, eventCamera) : default);
+            if (touch || visualControl != null && GuidesFirstDayButtonDuringNotice)
             {
-                ShowTouchFocus(touchTarget, eventCamera);
+                ShowTouchFocus(visualControl, eventCamera);
                 return;
             }
             if (!moving)
@@ -1392,31 +1548,80 @@ namespace HamPocha.UI
                 return;
             }
 
-            PochaKitchen kitchen = PochaKitchen.Current;
-            bool monitorTarget = _worldTarget == kitchen?.TutorialFacility(0);
-            Transform pointerTarget = monitorTarget && kitchen.TutorialMonitorVisual != null
-                ? kitchen.TutorialMonitorVisual : _worldTarget;
-            Vector3 projected = waypointCamera.WorldToScreenPoint(pointerTarget.position + Vector3.up);
+            if (_cursor == null) return;
+            Vector3 target = GetWaypointCenter(visual);
+            Vector3 projected = waypointCamera.WorldToScreenPoint(target);
             Vector2 screen = projected;
             Rect visible = Screen.safeArea;
             float scale = _canvas.scaleFactor;
             CollectMarkerObstacles(eventCamera);
-            float cursorHalf = WaypointCursorSize * .5f;
-            float heightOffset = (WaypointCursorSize - CursorSize) * .5f;
-            float bottom = CursorNearHeight + heightOffset - cursorHalf;
-            Rect marker = new Rect(screen + new Vector2(-cursorHalf, bottom) * scale,
-                new Vector2(WaypointCursorSize, CursorFarHeight + heightOffset + cursorHalf - bottom) * scale);
-            if (projected.z <= 0 || !visible.Contains(marker.min) || !visible.Contains(marker.max) || OverlapsHud(marker))
+
+            float radiusOffset = (WaypointCursorSize - CursorSize) * .5f;
+            Vector2 near = screen + Vector2.down * ((CursorNearHeight + radiusOffset) * scale);
+            Vector2 far = screen + Vector2.down * ((CursorFarHeight + radiusOffset) * scale);
+            float half = WaypointCursorSize * .5f * scale;
+            Rect marker = Rect.MinMaxRect(near.x - half, far.y - half, near.x + half, near.y + half);
+            if (projected.z <= 0 || !visible.Contains(screen))
             {
-                ShowDirectionCursor(screen, visible, eventCamera);
+                PochaKitchen kitchen = PochaKitchen.Current;
+                Rigidbody player = kitchen != null && kitchen.IsInside ? kitchen.InsideBody : _loader.PlayerBody;
+                Vector2 origin = visible.center;
+                if (player != null)
+                {
+                    Vector3 playerPosition = player.position;
+                    playerPosition.y = target.y;
+                    origin = waypointCamera.WorldToScreenPoint(playerPosition);
+                }
+                ShowDirectionCursor(screen, screen - origin, visible, eventCamera);
                 return;
             }
 
-            if (_cursor != null)
+            Vector2 aim = Vector2.up;
+            if ((!visible.Contains(marker.min) || !visible.Contains(marker.max) || OverlapsHud(marker)) &&
+                screen.y + half + (CursorFarHeight + radiusOffset) * scale < visible.yMax)
             {
-                float height = Mathf.Lerp(CursorNearHeight, CursorFarHeight, CursorPulse(Time.unscaledTime)) + heightOffset;
-                ShowCursor(screen + Vector2.up * height * scale, Vector2.down, WaypointCursorSize, eventCamera);
+                near = 2f * screen - near;
+                far = 2f * screen - far;
+                aim = Vector2.down;
             }
+            Vector2 position = Vector2.Lerp(near, far, CursorPulse(Time.unscaledTime));
+            position.x = Mathf.Clamp(position.x, visible.xMin + half, visible.xMax - half);
+            position.y = Mathf.Clamp(position.y, visible.yMin + half, visible.yMax - half);
+            Vector2 towardTarget = screen - position;
+            if (towardTarget.sqrMagnitude > 1f) aim = towardTarget.normalized;
+            ShowCursor(position, aim, WaypointCursorSize, eventCamera);
+        }
+
+        private Vector3 GetWaypointCenter(Transform visual)
+        {
+            if (_waypointVisual != visual)
+            {
+                _waypointVisual = visual;
+                _waypointLocalCenter = visual.InverseTransformPoint(FindVisualCenter(visual));
+            }
+            return visual.TransformPoint(_waypointLocalCenter);
+        }
+
+        private static Vector3 FindVisualCenter(Transform visual)
+        {
+            Bounds bounds = default;
+            bool hasBounds = false;
+            foreach (Renderer renderer in visual.GetComponentsInChildren<Renderer>())
+            {
+                if (!(renderer is MeshRenderer || renderer is SkinnedMeshRenderer) || !renderer.enabled ||
+                    renderer.shadowCastingMode == UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly ||
+                    renderer.GetComponent<TextMesh>() != null) continue;
+
+                Bounds part = renderer.bounds;
+                if (part.size.sqrMagnitude < .0001f) continue;
+                if (hasBounds) bounds.Encapsulate(part);
+                else bounds = part;
+                hasBounds = true;
+            }
+            if (hasBounds) return bounds.center;
+            if (visual.TryGetComponent(out Collider collider) && collider.bounds.size.sqrMagnitude >= .0001f)
+                return collider.bounds.center;
+            return visual.position + Vector3.up;
         }
 
         private Transform WorldVisual(Transform target)
@@ -1451,7 +1656,7 @@ namespace HamPocha.UI
             ShowCursor(position, -approach, CursorSize, eventCamera);
         }
 
-        private static float CursorPulse(float time)
+        internal static float CursorPulse(float time)
         {
             return (1f - Mathf.Cos(time * Mathf.PI * 2f / .9f)) * .5f;
         }
@@ -1468,7 +1673,15 @@ namespace HamPocha.UI
             if (_cursor.sizeDelta != dimensions) _cursor.sizeDelta = dimensions;
             _cursor.gameObject.SetActive(true);
             _cursor.localPosition = ScreenToLocal((RectTransform)_cursor.parent, screen, eventCamera);
-            _cursor.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f);
+            _cursor.localRotation = Quaternion.Euler(0, 0, GetCursorAngle(direction, out float thumbScale));
+            _cursor.localScale = new Vector3(thumbScale, 1f, 1f);
+        }
+
+        internal static float GetCursorAngle(Vector2 direction, out float thumbScale)
+        {
+            // 원본 손의 엄지는 검지 왼쪽에 있다. 검지가 왼쪽을 가리킬 때 좌우를 뒤집어 엄지를 위로 올린다.
+            thumbScale = direction.x < 0f ? -1f : 1f;
+            return Mathf.Atan2(-direction.x, direction.y) * Mathf.Rad2Deg;
         }
 
         private void HideCursor()
@@ -1516,69 +1729,86 @@ namespace HamPocha.UI
             return false;
         }
 
-        private void ShowDirectionCursor(Vector2 targetScreen, Rect visible, Camera eventCamera)
+        private void ShowDirectionCursor(Vector2 targetScreen, Vector2 direction, Rect visible, Camera eventCamera)
         {
-            if (_cursor == null) return;
-
-            // 손을 회전시켰을 때의 대각선과 왕복 거리까지 포함해 화면과 HUD에 여백을 둔다.
-            float half = (WaypointCursorSize * .71f + EdgeTravel + 4f) * _canvas.scaleFactor;
+            // 회전한 손과 왕복 거리 전체가 안전영역 안에 들어오도록 여백을 잡는다.
+            float scale = _canvas.scaleFactor;
+            float half = (WaypointCursorSize * .71f + EdgeTravel + 4f) * scale;
             if (visible.width <= half * 2 || visible.height <= half * 2)
             {
                 HideCursor();
                 return;
             }
-            Rect edges = Rect.MinMaxRect(visible.xMin + half, visible.yMin + half, visible.xMax - half, visible.yMax - half);
-            Vector2 direction = targetScreen - visible.center;
+
             // 직교 카메라의 화면 좌표는 깊이가 음수여도 반전되지 않는다.
             if (direction.sqrMagnitude < 1f) direction = Vector2.down;
             direction.Normalize();
-            float toX = Mathf.Abs(direction.x) > .001f ? edges.width * .5f / Mathf.Abs(direction.x) : float.MaxValue;
-            float toY = Mathf.Abs(direction.y) > .001f ? edges.height * .5f / Mathf.Abs(direction.y) : float.MaxValue;
-            Vector2 desired = edges.center + direction * Mathf.Min(toX, toY);
-            bool vertical = toX <= toY;
-            if (!TryPlaceDirectionCursor(desired, edges, half, vertical, out Vector2 screen))
+            Vector2 center = visible.center;
+            Vector2 space = visible.size * .5f - Vector2.one * half;
+            Vector2 innerSpace = InnerEdgeSpace(visible.size, space);
+            float edgeDistance = EdgeDistance(direction, space);
+            float distance = edgeDistance;
+            float blend = EdgeHudBlend * scale;
+            foreach (Rect obstacle in _markerObstacles)
             {
-                Vector2 corner = desired;
-                if (vertical) corner.y = desired.y >= edges.center.y ? edges.yMax : edges.yMin;
-                else corner.x = desired.x >= edges.center.x ? edges.xMax : edges.xMin;
-                if (!TryPlaceDirectionCursor(corner, edges, half, !vertical, out screen))
-                {
-                    HideCursor();
-                    return;
-                }
+                float clearDistance = ClearEdgeDistance(center, direction, edgeDistance, obstacle, half, blend);
+                distance = Mathf.Min(distance, clearDistance);
             }
-            if ((targetScreen - screen).sqrMagnitude > 1f) direction = (targetScreen - screen).normalized;
-            Vector2 position = screen + direction * (EdgeTravel * CursorPulse(Time.unscaledTime) * _canvas.scaleFactor);
-            ShowCursor(position, direction, WaypointCursorSize, eventCamera);
+
+            // HUD를 피할 자리가 부족해도 손은 안쪽 경계 바깥에서 계속 이동한다.
+            distance = Mathf.Max(distance, EdgeDistance(direction, innerSpace));
+            Vector2 offset = direction * distance;
+            Vector2 towardTarget = targetScreen - (center + offset);
+            Vector2 aim = towardTarget.sqrMagnitude > 1f ? towardTarget.normalized : direction;
+            float travel = EdgeTravel * CursorPulse(Time.unscaledTime) * scale;
+            Vector2 position = center + KeepInEdgeBand(offset + aim * travel, innerSpace, direction);
+            ShowCursor(position, aim, WaypointCursorSize, eventCamera);
         }
 
-        private bool TryPlaceDirectionCursor(Vector2 desired, Rect edges, float half, bool vertical, out Vector2 screen)
+        private static Vector2 InnerEdgeSpace(Vector2 visibleSize, Vector2 edgeSpace)
         {
-            screen = desired;
-            if (!OverlapsHud(new Rect(desired - Vector2.one * half, Vector2.one * half * 2f))) return true;
+            Vector2 inset = Vector2.Scale(visibleSize, new Vector2(EdgeSideInset, EdgeVerticalInset));
+            return Vector2.Min(visibleSize * .5f - inset, edgeSpace);
+        }
 
-            // 같은 테두리에서 HUD를 피하면서 원래 방향에 가장 가까운 자리를 고른다.
-            float start = vertical ? edges.yMin : edges.xMin;
-            float end = vertical ? edges.yMax : edges.xMax;
-            float step = 16f * _canvas.scaleFactor;
-            float nearest = float.MaxValue;
-            int intervals = Mathf.Max(1, Mathf.CeilToInt((end - start) / step));
-            for (int i = 0; i <= intervals; i++)
-            {
-                float position = Mathf.Lerp(start, end, (float)i / intervals);
-                Vector2 point = vertical ? new Vector2(desired.x, position) : new Vector2(position, desired.y);
-                float distance = (point - desired).sqrMagnitude;
-                if (distance >= nearest || OverlapsHud(new Rect(point - Vector2.one * half, Vector2.one * half * 2f))) continue;
-                nearest = distance;
-                screen = point;
-            }
-            return nearest < float.MaxValue;
+        private static Vector2 KeepInEdgeBand(Vector2 offset, Vector2 innerSpace, Vector2 direction)
+        {
+            if (Mathf.Abs(offset.x) >= innerSpace.x || Mathf.Abs(offset.y) >= innerSpace.y) return offset;
+
+            Vector2 outward = offset.sqrMagnitude > .0001f ? offset.normalized : direction;
+            return outward * EdgeDistance(outward, innerSpace);
+        }
+
+        private static float EdgeDistance(Vector2 direction, Vector2 space)
+        {
+            float toX = direction.x != 0f ? space.x / Mathf.Abs(direction.x) : float.PositiveInfinity;
+            float toY = direction.y != 0f ? space.y / Mathf.Abs(direction.y) : float.PositiveInfinity;
+            return Mathf.Min(toX, toY);
+        }
+
+        private static float ClearEdgeDistance(Vector2 center, Vector2 direction, float edgeDistance,
+            Rect obstacle, float half, float blend)
+        {
+            Vector2 offset = obstacle.center - center;
+            float forward = Vector2.Dot(offset, direction);
+            if (forward <= 0f) return edgeDistance;
+
+            // 방향선은 따라가고 HUD에 다가갈 때만 안쪽으로 들어갔다 나와 빈 자리에 고정되지 않게 한다.
+            Vector2 extent = obstacle.size * .5f + Vector2.one * half;
+            Vector2 axis = new Vector2(Mathf.Abs(direction.x), Mathf.Abs(direction.y));
+            Vector2 sideways = new Vector2(-direction.y, direction.x);
+            float gap = Mathf.Abs(Vector2.Dot(offset, sideways)) - (extent.x * axis.y + extent.y * axis.x);
+            if (gap >= blend) return edgeDistance;
+
+            float near = Mathf.Clamp(forward - Vector2.Dot(extent, axis) - 1f, 0f, edgeDistance);
+            return Mathf.SmoothStep(near, edgeDistance, gap / blend);
         }
 
         private void RestoreCamera()
         {
-            if (!_panning) return;
+            if (!_panning && !_firstDayOutdoorFrame) return;
             _panning = false;
+            _firstDayOutdoorFrame = false;
             if (_camera != null)
             {
                 _camera.transform.localPosition = _cameraLocal;
@@ -1594,18 +1824,22 @@ namespace HamPocha.UI
         private void OnDestroy()
         {
             _buttonFocus?.Dispose();
+            _confirmFocus?.Dispose();
             if (Current == this) Current = null;
         }
 
         private void OnDisable()
         {
+            StopForestDiscoveryCamera(completed: false);
             InteractionOutline.ShowTutorial(null);
             _buttonFocus?.Show(null, default);
+            _confirmFocus?.Show(null, default);
             if (_panRoutine != null) StopCoroutine(_panRoutine);
             RestoreCamera();
             if (_loader != null) _loader.SetTutorialMovementBlocked(false);
             if (_clock != null) _clock.SetTutorialPaused(false);
             _clock?.SetTutorialOpeningHold(false);
+            _clock?.SetTutorialSleepHold(false);
             if (_joystickTouch != null) _joystickTouch.Pressed -= OnJoystickPressed;
             if (_root != null) _root.SetActive(false);
         }

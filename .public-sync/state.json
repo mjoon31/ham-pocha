@@ -36,7 +36,8 @@
     "fe49c802-851a-41a7-9a3a-5e13e5455888",
     "8c2160af-cd16-45db-86bb-0db0ffbee707",
     "d706e0a2-75f0-4113-b922-f52ec4bbeeb8",
-    "b6874173-95b3-4708-ae46-42f8205c45fd"
+    "b6874173-95b3-4708-ae46-42f8205c45fd",
+    "441defc3-4125-485e-b11a-68bfb046a96d"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
@@ -101,7 +102,7 @@
     "Assets/00_ThirdParty/VirtualJoystick/Skins/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
     "Assets/01_Scenes/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
     "Assets/02_Scripts/Core/MainSceneLoader.cs": "07e92f3961047eaab3450978eae3cf44a407720a",
-    "Assets/02_Scripts/Core/SceneRegion.cs": "36464a78deff4d80619962ae2263b4817ef23ce4",
+    "Assets/02_Scripts/Core/SceneRegion.cs": "3ab2340be8503321892f9e946bbec0cd49969463",
     "Assets/02_Scripts/Data/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
     "Assets/02_Scripts/Gameplay/Business/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
     "Assets/02_Scripts/Gameplay/Exploration/.gitkeep": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",

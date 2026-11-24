@@ -44,6 +44,9 @@ namespace HamPocha.Gameplay
         private const float CounterHalfWidth = .96f;
         private const float ServingReach = 1.18f;
         private const float OrderAcceptReach = 1.55f;
+        private const float ThirdOrderDriverReach = .30f;
+        private const float ThirdOrderAisleReach = .22f;
+        private const float ThirdOrderBoundaryOffset = .18f;
         private const float CookerRange = .82f;
         private const float StorageRange = .90f;
         private const float WalkSeconds = 1.3f;
@@ -1094,6 +1097,7 @@ namespace HamPocha.Gameplay
                 Vector3 thirdBoundary = (_order[2].position + _cookApproaches[2]) * .5f;
                 Vector3 thirdAxis = _cookApproaches[2] - _order[2].position;
                 thirdAxis.y = 0f;
+                thirdBoundary += thirdAxis.normalized * ThirdOrderBoundaryOffset;
                 bool atThirdCookerSide = Vector3.Dot(pos - thirdBoundary, thirdAxis) > 0f;
                 for (int i = 0; i < 3; i++)
                 {
@@ -1170,15 +1174,18 @@ namespace HamPocha.Gameplay
             delta.y = 0f;
             float alongCounter = Vector3.Dot(delta, _insideRoom.right);
             float towardAisle = Vector3.Dot(delta, _insideRoom.forward);
-            if (IsInOrderRange(alongCounter, towardAisle, accepting))
+            if (IsInOrderRange(alongCounter, towardAisle, accepting, slot == 2))
                 AddTarget(counterPoint, Target.Order, slot, delta.magnitude);
         }
 
-        private static bool IsInOrderRange(float alongCounter, float towardAisle, bool accepting)
+        private static bool IsInOrderRange(float alongCounter, float towardAisle, bool accepting, bool thirdOrder)
         {
-            // 옆 주문 자리와 서빙 범위는 유지하고, 주문을 받을 때 통로 쪽으로만 더 닿게 한다.
             float reach = accepting && towardAisle > 0f ? OrderAcceptReach : ServingReach;
-            float width = alongCounter / CounterHalfWidth;
+            float halfWidth = CounterHalfWidth;
+            // 3번 자리에서만 조리대 이동으로 비워진 운전석과 통로 쪽을 더 쓴다.
+            if (thirdOrder && alongCounter > 0f) halfWidth += ThirdOrderDriverReach;
+            if (thirdOrder && towardAisle > 0f) reach += ThirdOrderAisleReach;
+            float width = alongCounter / halfWidth;
             float depth = towardAisle / reach;
             return width * width + depth * depth <= 1f;
         }

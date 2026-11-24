@@ -47,6 +47,8 @@ namespace HamPocha.Gameplay
         private const float ThirdOrderDriverReach = .30f;
         private const float ThirdOrderAisleReach = .22f;
         private const float ThirdOrderBoundaryOffset = .18f;
+        private const float WheelSwitchPadding = .22f;
+        private const float WheelSwitchMaxDegrees = 12f;
         private const float CookerRange = .82f;
         private const float StorageRange = .90f;
         private const float WalkSeconds = 1.3f;
@@ -1241,13 +1243,26 @@ namespace HamPocha.Gameplay
             if (held && direction.sqrMagnitude >= .16f)
             {
                 float angle = Mathf.Repeat(Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg, 360f);
-                int index = Mathf.FloorToInt(angle * _wheelSize / 360f + .5f) % _wheelSize;
+                int index = WheelSlot(angle, _wheelSize, _selected);
                 if (_selected != index)
                 {
                     _selected = index;
                     _hud.Highlight(index);
                 }
             }
+        }
+
+        private static int WheelSlot(float angle, int slotCount, int selected)
+        {
+            float slotDegrees = 360f / slotCount;
+            if (selected >= 0 && selected < slotCount)
+            {
+                // 경계 부근에서 손이 조금 흔들려도 선택한 칸을 유지한다.
+                float padding = Mathf.Min(WheelSwitchMaxDegrees, slotDegrees * WheelSwitchPadding);
+                if (Mathf.Abs(Mathf.DeltaAngle(selected * slotDegrees, angle)) <= slotDegrees * .5f + padding)
+                    return selected;
+            }
+            return Mathf.FloorToInt(angle / slotDegrees + .5f) % slotCount;
         }
 
         private void ConfirmWheel()

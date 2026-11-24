@@ -46,7 +46,32 @@ Assets/
 
 - 모듈·asmdef 도입은 ADR에 책임과 의존 방향을 정한 뒤 필요한 범위에만 적용한다. 빈 아키텍처부터 만들지 않는다.
 - 패키지가 자동 관리하는 `Settings`, `TextMesh Pro` 등의 폴더는 근거 없이 이동하지 않는다. 렌더링은 URP 카툰풍을 채택했으며 설정은 Assets/Rendering에서 관리한다. Addressables·다국어 패키지 추가는 별도 결정이다.
-- 현재 샘플씬은 `Assets/01_Scenes/SampleScene.unity`, 애니메이션 미리보기 씬은 `AnimationPreview.unity`다. 플레이어 프리팹·모델·재질·이미지는 각 분류의 `Characters/Player/` 아래에 둔다. 추가 이동 시 `.meta` GUID와 씬/프리팹 참조를 보존한다.
+- 애니메이션 미리보기 씬은 `Assets/01_Scenes/AnimationPreview.unity`다. 플레이어 프리팹·모델·재질·이미지는 각 분류의 `Characters/Player/` 아래에 둔다. 추가 이동 시 `.meta` GUID와 씬/프리팹 참조를 보존한다.
+
+## 현행 기능별 배치 — 2026-11-21
+
+| 경로 | 찾을 수 있는 기능 |
+|---|---|
+| `02_Scripts/UI/Startup`, `Account`, `Pause` | 타이틀·로딩, 계정·클라우드 상태, 일시정지 |
+| `02_Scripts/UI/Business`, `Content`, `Exploration`, `Home` | 포차 영업·주문, 가방·성장·상점, 숲 입장·전투·보상, 집 배치·가구 창고 |
+| `02_Scripts/UI/Hud`, `Minimap`, `Tutorial` | 공용 플레이 HUD·피로/체력, 미니맵, 튜토리얼 안내·입력 |
+| `02_Scripts/UI/Common`, `Preview` | 스킨·공용 표현 컴포넌트, 자세·착석·전투 미리보기 |
+| `02_Scripts/Core/`과 `Save`, `Time`, `WorldRendering` | 지역 로딩, 저장·SDK 초기화, 시간, 월드 조명·그림자·가림 처리 |
+| `02_Scripts/Data/Save`, `Content`, `Tutorial` | 저장 형식·변환, 레시피·카탈로그·진행 시간, 튜토리얼 가구 보상 정의 |
+| `02_Scripts/Gameplay/Home`, `Player/Animation`, `Exploration/Animation` | 실제 집 배치, 플레이어와 숲 몬스터 연출 |
+| `02_Scripts/Editor/Content`, `Checks`, `Save` | 콘텐츠 설정, 영업·피로 검사, 저장 마이그레이션 검사 |
+| `03_Prefabs/ToonProps/Buildings` | `Houses` 주택, `FoodTrucks` 포차 차량, `PublicBuildings` 공공건물과 `PublicIslandSets` 아일랜드 조합 |
+| `03_Prefabs/ToonProps/Food` | 음식과 숲 음식 프리팹 |
+| `03_Prefabs/ToonProps/Props`, `KitchenProps`, `Trees`, `Grass` | 일반·공공 소품, 조리용 소품, 수목, 풀 |
+| `03_Prefabs/ToonProps/Props/HomeCustomization` | 실내 커스터마이징용 `Appliances`, `Furniture`, `Walls`. 폴더 분류와 인게임 가구 해금은 독립된 설정이다. |
+| `03_Prefabs/ToonProps/Props/HomeCustomization/Furniture/Mnostva` | 집 배치에 등록된 Mnostva 가구·소품과 연결 메시 |
+| `03_Prefabs/Exploration/Harvest` | 채집물과 채집 효과 |
+| `06_Materials/World`, `Business`, `Exploration`, `Interaction` | 월드 지면·계절·마당, 포차·주문, 숲 채집, 상호작용 강조 재질 |
+| `06_Materials/Physics` | 플레이어와 배치 도구가 사용하는 공용 물리 재질 |
+| `07_Images/UI`, `07_Images/World/Ground`, `07_Images/Props/HomeCustomization` | HUD·시작·안내 이미지, 월드 지면 패턴, 커스터마이징 소품 아이콘 |
+| `10_Data/UI`, `10_Data/Tutorial` | UI 스킨·미니맵 아트 정의, 튜토리얼 가구 보상 데이터 |
+
+프리팹의 시각 메시·재질이 들어 있는 `Meshes` 폴더는 해당 프리팹과 함께 관리한다. `Resources`에 둔 항목은 이동할 때 `Resources/` 이후 상대 경로를 보존한다. `UI/SceneTransitionFade.cs`, `Core/MainSceneLoader.cs`, `Core/SceneRegion.cs`의 승인된 소스 경로는 [씬 연결](../Architecture/Scene_Flow.md)에서 확인한다.
 
 ## Gameplay 실제 구조 — 2026-11-14
 

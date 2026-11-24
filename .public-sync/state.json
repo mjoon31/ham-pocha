@@ -60,7 +60,8 @@
     "096b1334-311c-44ee-a3a4-b69ab9c01f25",
     "2bd7d4d6-bf5f-4800-908a-202098ed3614",
     "81524128-66f8-4737-b949-4edf65f7dcd5",
-    "0613dbfe-a0b5-4d12-aedc-3132b1a9a869"
+    "0613dbfe-a0b5-4d12-aedc-3132b1a9a869",
+    "ef18f793-5dee-4027-821b-22766ecc2a1f"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
@@ -72,7 +73,7 @@
     "Docs/Issue_Records/Records/IR-20261105-002_mobile-concept-research.md": "472cda24f3744cdb0aae6654be1abade5d219348",
     "Docs/Issue_Records/Records/IR-20261106-001_project-rename.md": "9d9946b2d21919e38f34a2d995717888804c6848",
     "Docs/Issue_Records/Records/IR-20261106-002_branch-policy.md": "aa54929494862e6a5c14e34a839749bb144e7a5b",
-    "Docs/Issue_Records/Records/IR-20261106-003_public-sync.md": "0804575c7fa0127263077a56347abd35789fddd3",
+    "Docs/Issue_Records/Records/IR-20261106-003_public-sync.md": "d4c6c730a72b9313ea2a49d34dfbf4f0bdfeb7b2",
     "Docs/README.md": "621697406f0cf7b73527bd197582a73e01d72d6a",
     "Docs/Research/Competitor_Comparison.md": "25668d2d158644efc250138e8274e3ab66cc34cf",
     "Docs/Research/Concept_Comparison.md": "2cc56d4ee22e79e1faa706232ddccd746e11df93",
@@ -95,7 +96,7 @@
     "Docs/Workflow/Daily_Report_Template.md": "5f58a05ccfd71697b35ca657a2696706485c9f78",
     "Docs/Workflow/Development_Flow.md": "3ddd7cc96231e747267a2150987db655e4dc2c90",
     "Docs/Architecture/Scene_Flow.md": "f0a0ce7721bd417d097e3526e492ed928b24dcd4",
-    "Docs/Rules/Project_Structure.md": "09d5bde507cd1b8d2c1daec05d2d198c38a1ec07",
+    "Docs/Rules/Project_Structure.md": "29c4721d9cad6b1e60a8344900e0e189f745f6bf",
     "Source/Core/MainSceneLoader.cs": null,
     "Source/Core/SceneRegion.cs": null,
     "Source/UI/SceneTransitionFade.cs": null,
@@ -201,8 +202,8 @@
     "Assets/02_Scripts/Gameplay/Inventory/Inventory.cs": "b3dba26c815cc6bcf77f4fc83c845542a753716d",
     "Assets/02_Scripts/Gameplay/Session/GameSessionState.cs": "a9403591f3d9b727b8836789ff4dec4d2e41bf82",
     "Assets/02_Scripts/UI/Tutorial/TutorialUi.cs": "ab53e261a515155f475ad37b667767e3a76fbdd4",
-    "Docs/Architecture/Tutorial_Flow.md": "e59473a35762d9e0b6ad1ed25e11ed8c01dd4bf2",
-    "Docs/Issue_Records/Records/IR-20261117-004_business-rework.md": "4c47c0f796b2069e361f4d3d43dc845349e9647a",
+    "Docs/Architecture/Tutorial_Flow.md": "451f746f99acaa010263c2ba8096f60f85cfc7f3",
+    "Docs/Issue_Records/Records/IR-20261117-004_business-rework.md": "ce4c0a2df64549fb6f3fc23e4a0e0642639e0a93",
     "Docs/Test/Logs/2026-11-16_tutorial.md": "10448e40b466ac4323bb7a0a0fa20401df2f8db4",
     "Docs/Test/Logs/2026-11-20_daily-gameplay.md": "3a0b4c1f8bfd4a08359b96e914ba9aab38466e0e",
     "Docs/Test/Logs/2026-11-21_pocha-close-and-outdoor-queue.md": "a853ce230f68aa0266676bb1a3251f7bf424b898",

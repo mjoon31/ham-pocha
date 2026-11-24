@@ -66,7 +66,8 @@ namespace HamPocha.Gameplay
         public KitchenOrder[] Orders = { new KitchenOrder(), new KitchenOrder(), new KitchenOrder() };
         public int Sequence;
         public int NextIndoorResident;
-        public float NextVisit = 5f;
+        internal const float VisitIntervalSeconds = 1f;
+        public float NextVisit = VisitIntervalSeconds;
         public bool InteriorView;
         public bool HasInteriorPosition;
         public Vector3 InteriorPosition;
@@ -200,6 +201,7 @@ namespace HamPocha.Gameplay
         public void Restore(KitchenSaveData data)
         {
             State = data == null ? new KitchenSaveData() : JsonUtility.FromJson<KitchenSaveData>(JsonUtility.ToJson(data));
+            State.NextVisit = Mathf.Min(State.NextVisit, KitchenSaveData.VisitIntervalSeconds);
             RestoreFoodStorageOrder();
             DisplayVersion++;
             // 구버전 화로·진열 배열은 실내 음식 번호로 그대로 소진한다.

@@ -1426,7 +1426,7 @@ namespace HamPocha.Gameplay
             if (!_session.CanTakeNewOrders) return;
             Stock.State.NextVisit = Mathf.Max(0, Stock.State.NextVisit - delta);
             if (Stock.State.NextVisit > 0) return;
-            Stock.State.NextVisit = 5f;
+            Stock.State.NextVisit = KitchenSaveData.VisitIntervalSeconds;
             int freeSlot = -1;
             int available = 0;
             for (int i = 0; i < 3; i++)
@@ -1617,7 +1617,7 @@ namespace HamPocha.Gameplay
                     Leave(slot, order, OrderOutcome.Missed);
                 }
             }
-            Stock.State.NextVisit = 5f;
+            Stock.State.NextVisit = KitchenSaveData.VisitIntervalSeconds;
         }
 
         public void SettleBusinessClose()

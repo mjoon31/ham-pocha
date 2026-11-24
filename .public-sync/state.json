@@ -57,7 +57,8 @@
     "9590d897-4bb6-457f-9741-55c72590c4bc",
     "0a6b3a75-1d2a-4850-bd07-9ae5ae4a5db6",
     "f3f83a71-c915-487f-824c-7b89729c0757",
-    "096b1334-311c-44ee-a3a4-b69ab9c01f25"
+    "096b1334-311c-44ee-a3a4-b69ab9c01f25",
+    "2bd7d4d6-bf5f-4800-908a-202098ed3614"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
@@ -192,8 +193,8 @@
     "Docs/Rules/Test_Rules.md": "6c61ff15a4e233db08c726f1ad54e8a4a4332e29",
     "Assets/02_Scripts/Core/Time/WorldClock.cs": "c39be59588dfae8bbf6eaf64a5675a031f930372",
     "Assets/02_Scripts/Gameplay/Business/CookingStation.cs": "941336207078f205517670b13cf8c652c9d01fa5",
-    "Assets/02_Scripts/Gameplay/Business/KitchenStock.cs": "f954361092471f1b5f9998e0a2f05f02e1edcd03",
-    "Assets/02_Scripts/Gameplay/Business/PochaKitchen.cs": "2bed24c2bbaddf622a3cf23e9252deecba75979b",
+    "Assets/02_Scripts/Gameplay/Business/KitchenStock.cs": "8f898a84fd6e5fc17acd694adf5a854517c86aa8",
+    "Assets/02_Scripts/Gameplay/Business/PochaKitchen.cs": "be60da8f92e45741753b753a27a07feea80ae7a3",
     "Assets/02_Scripts/Gameplay/Exploration/HarvestTarget.cs": "9e35da5f884c2580e2526d9fc53c0f443d2a7aca",
     "Assets/02_Scripts/Gameplay/Inventory/Inventory.cs": "b3dba26c815cc6bcf77f4fc83c845542a753716d",
     "Assets/02_Scripts/Gameplay/Session/GameSessionState.cs": "2c0d9256a76ea1bb17189addd37bc68b5dda01f5",

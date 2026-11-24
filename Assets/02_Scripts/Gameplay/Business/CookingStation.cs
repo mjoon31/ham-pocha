@@ -336,14 +336,25 @@ namespace HamPocha.Gameplay
         }
 
         internal bool IsClosing => _session.CurrentActivity == PlayerActivity.Business && !_session.CanTakeNewOrders;
-        internal bool CanAcceptOrders => _session.CanTakeNewOrders;
+        internal bool CanAcceptOrders => _session.CurrentActivity == PlayerActivity.Business;
 
-        internal bool HasAcceptedOrders()
+        internal bool HasWaitingCustomers()
         {
-            if (PochaKitchen.Current != null) return PochaKitchen.Current.AcceptedOrderCount > 0;
+            if (PochaKitchen.Current != null) return PochaKitchen.Current.WaitingCustomerCount > 0;
             foreach (TableOrder order in _orders)
-                if (order.Accepted && order.WaitRemaining > 0f) return true;
+                if (order.HasArrived && order.HasOrder && order.WaitRemaining > 0f) return true;
             return false;
+        }
+
+        internal void ReleaseArrivingOrders()
+        {
+            if (PochaKitchen.Current != null)
+            {
+                PochaKitchen.Current.ReleaseArrivingOrders();
+                return;
+            }
+            for (int i = _orders.Count - 1; i >= 0; i--)
+                if (!_orders[i].HasArrived) _orders[i].CancelForBusinessEnd();
         }
 
         public bool TryReservePlace(TableOrder table)
@@ -637,6 +648,9 @@ namespace HamPocha.Gameplay
                     MissedCount++;
                     Sfx.Play(SfxCue.Angry);
                     break;
+                case OrderOutcome.BusinessClosed:
+                    MissedCount++;
+                    break;
             }
         }
 
@@ -683,7 +697,6 @@ namespace HamPocha.Gameplay
             _business.SummaryGold = _business.DailyGold;
             _business.SummaryXp = _business.DailyXp;
             _business.SummaryPending = true;
-            GameplayAnalytics.Stage(11, "day_closed");
             SetMessage($"결산 완료 · 음식 보관{stored}/폐기{discarded} · 보상은1회 정산했습니다.");
             Debug.Log($"[Gameplay] event=business_summary result=completed sequence={_statisticsDay} stored={stored} discarded={discarded}", this);
         }
@@ -692,8 +705,9 @@ namespace HamPocha.Gameplay
         {
             if (!SummaryPending) return;
             _business.SummaryPending = false;
-            GameplayAnalytics.Stage(12, "settlement_viewed");
             Version++;
+            GameSave save = FindObjectOfType<GameSave>();
+            if (save != null && save.IsReady) save.RequestSave();
             Sfx.Play(SfxCue.MenuClose);
             Debug.Log($"[UI] frame={Time.frameCount} event=business_summary result=confirmed day={_business.LastSummaryDay}", this);
         }
@@ -742,6 +756,12 @@ namespace HamPocha.Gameplay
                 Debug.LogWarning("[Save] event=business_menu_sales result=fallback reason=invalid_breakdown", this);
             }
             _growth = data.Growth == null ? new GrowthSaveData() : JsonUtility.FromJson<GrowthSaveData>(JsonUtility.ToJson(data.Growth));
+            for (int i = 0; i < _growth.FoodLevels.Length; i++)
+            {
+                if (_growth.FoodLevels[i] <= Growth.MaxFoodLevel) continue;
+                Debug.Log($"[Save] event=food_level_restore result=capped menu={i} old_level={_growth.FoodLevels[i]} max_level={Growth.MaxFoodLevel}", this);
+                _growth.FoodLevels[i] = Growth.MaxFoodLevel;
+            }
             Growth.UnlockForests(_catalog, _growth);
             _hasSelection = data.HasSelection;
             _selectedRecipe = data.SelectedRecipe;

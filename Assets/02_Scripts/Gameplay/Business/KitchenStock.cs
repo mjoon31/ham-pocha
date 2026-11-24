@@ -38,6 +38,7 @@ namespace HamPocha.Gameplay
         public int Phase;
         public int Menu;
         public float Remaining;
+        public bool ReplacementPending;
         public int Sequence;
         public int WarnedPhase;
         public int ResidentTicket;
@@ -245,7 +246,8 @@ namespace HamPocha.Gameplay
             foreach (int count in data.Display) if (count < 0 || count > 100) return false;
             foreach (KitchenOrder order in data.Orders)
                 if (order == null || order.Phase < 0 || order.Phase > 4 || order.Menu < 0 || order.Menu >= 7 ||
-                    !IsSeconds(order.Remaining) || order.Sequence < 0 || order.Gold < 0 || order.Xp < 0 ||
+                    !IsSeconds(order.Remaining) || (order.ReplacementPending && order.Phase != 0) ||
+                    order.Sequence < 0 || order.Gold < 0 || order.Xp < 0 ||
                     (order.WarnedPhase != 0 && order.WarnedPhase != 2 && order.WarnedPhase != 3) ||
                     order.ResidentTicket < 0 || order.ResidentTicket > (int)CustomerKind.Child) return false;
             Vector3 pos = data.InteriorPosition;

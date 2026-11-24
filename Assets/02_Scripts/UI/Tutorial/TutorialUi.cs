@@ -806,7 +806,7 @@ namespace HamPocha.UI
             }
             if (page == 5) PresentAction(kitchen.IsBusinessPanelOpen ? null : kitchen.TutorialBusinessButton);
             else if (page == 6)
-                PresentLesson($"영업 패널에서 영업을 시작하거나 마감할 수 있어요. 정오부터 개점할 수 있고, 자정부터는 새 주문을 받지 않아요. 받은 주문을 처리하면 자동으로 마감해요. 직접 마감하면 당일 재개점은 불가능해요. 이제 {FirstForestName}으로 가서 영업 준비에 필요한 재료를 모아 보세요!");
+                PresentLesson($"영업 패널에서 영업을 시작하거나 마감할 수 있어요. 정오부터 개점하고 자정에는 기다리는 손님을 마저 응대하면 자동으로 정산해요. 마감하면 당일 재개점은 불가능해요. 이제 {FirstForestName}으로 가서 영업 준비에 필요한 재료를 모아 보세요!");
             else PresentWorldAction(kitchen.TutorialExit, kitchen.InteriorCamera);
         }
 

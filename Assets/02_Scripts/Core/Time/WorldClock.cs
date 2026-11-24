@@ -23,6 +23,7 @@ namespace HamPocha.Core
         [SerializeField, Min(1)] private int _startDay = 1;
 
         private float _secondsIntoDay;
+        private GameSessionState _session;
         private bool _hasFocus = true;
         private bool _isApplicationPaused;
         private bool _tutorialPaused;
@@ -47,7 +48,8 @@ namespace HamPocha.Core
 
         public bool CanAdvance
         {
-            get { return CanAdvanceOutsideTutorial && !_tutorialPaused; }
+            get { return CanAdvanceOutsideTutorial && !_tutorialPaused &&
+                (IsDaytime || _session == null || !_session.HasPendingBusinessSummary); }
         }
 
         internal bool IsApplicationActive => _hasFocus && !_isApplicationPaused;
@@ -70,11 +72,17 @@ namespace HamPocha.Core
             get { return _secondsIntoDay / SecondsPerDay; }
         }
 
-        public bool IsSunset => Hour >= SunsetHour;
+        private bool HoldsBusinessSunset => !IsDaytime && _session != null &&
+            (_session.CurrentActivity == PlayerActivity.Business || _session.HasPendingBusinessSummary);
 
-        internal float SunsetWeight => IsSunset
-            ? Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(SunsetHour / 24f, FullSunsetHour / 24f, DayProgress))
-            : 0f;
+        public bool IsSunset => Hour >= SunsetHour || HoldsBusinessSunset;
+
+        private float SunsetWeight => HoldsBusinessSunset ? 1f :
+            Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(SunsetHour / 24f, FullSunsetHour / 24f, DayProgress));
+
+        // 밤으로 넘어가는 동안에도 노을의 색과 가로등 밝기를 같이 잇는다.
+        internal float GetSunsetLightingWeight(float dayWeight) =>
+            IsDaytime || IsSunset ? SunsetWeight : dayWeight;
 
         public float LightingProgress
         {
@@ -82,7 +90,9 @@ namespace HamPocha.Core
             {
                 float morning = MorningHour * SecondsPerHour;
                 float daylight = (_secondsIntoDay - morning) / (SecondsPerDay - morning);
-                return _lightingPreviewProgress ?? (IsDaytime ? daylight * .5f : .5f);
+                if (_lightingPreviewProgress.HasValue) return _lightingPreviewProgress.Value;
+                if (HoldsBusinessSunset) return .499f;
+                return IsDaytime ? daylight * .5f : .5f;
             }
         }
 
@@ -136,6 +146,7 @@ namespace HamPocha.Core
 
         private void Awake()
         {
+            _session = GetComponent<GameSessionState>();
             DayNumber = _startDay;
             _secondsIntoDay = MorningHour * SecondsPerHour;
 

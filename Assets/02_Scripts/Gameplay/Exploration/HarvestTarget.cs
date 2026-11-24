@@ -1,6 +1,8 @@
 using UnityEngine;
+using HamPocha.Core;
 using HamPocha.Audio;
 using HamPocha.Data;
+using HamPocha.UI;
 
 namespace HamPocha.Gameplay
 {
@@ -14,6 +16,8 @@ namespace HamPocha.Gameplay
         [SerializeField] private string _monsterName;
         [SerializeField, Min(1)] private int _yieldCount = 1;
         [SerializeField, Min(0)] private int _tutorialYieldCount;
+        [SerializeField] private bool _nightOnly;
+        [SerializeField] private bool _hideDuringTutorial;
         [SerializeField] private GameObject _selectionMarker;
         [SerializeField] private ParticleSystem _harvestDust;
 
@@ -23,6 +27,10 @@ namespace HamPocha.Gameplay
         private Vector3 _spawnPosition;
         private bool _hasSpawnState;
         private bool _useTutorialYield;
+        private WorldClock _clock;
+        private int _dayYield;
+        private int _harvestedAmount;
+        private bool _noHarvestReward;
 
         private void Awake()
         {
@@ -57,6 +65,8 @@ namespace HamPocha.Gameplay
             InitializeSpawn();
             _hitPoints = _initialHitPoints;
             _isCollected = false;
+            _harvestedAmount = 0;
+            _noHarvestReward = false;
 
             Rigidbody body = GetComponent<Rigidbody>();
 
@@ -72,7 +82,7 @@ namespace HamPocha.Gameplay
             }
 
             transform.position = _spawnPosition;
-            gameObject.SetActive(true);
+            RefreshAvailability();
 
             Monster monster = GetComponent<Monster>();
 
@@ -104,20 +114,33 @@ namespace HamPocha.Gameplay
         }
 
         public IngredientType Ingredient { get { return _ingredient; } }
-        public int YieldCount { get { return _useTutorialYield && _tutorialYieldCount > 0 ? _tutorialYieldCount : _yieldCount; } }
+        public int YieldCount => _useTutorialYield ? (HiddenForTutorial ? 0 : BaseYield) :
+            _clock != null && _clock.IsDaytime ? _dayYield : _yieldCount;
+        internal int RegularYield => _yieldCount;
+        private int BaseYield => _useTutorialYield && _tutorialYieldCount > 0 ? _tutorialYieldCount : _yieldCount;
+        internal int HarvestedAmount => _noHarvestReward ? 0 : _harvestedAmount > 0 ? _harvestedAmount : BaseYield;
+        internal bool NightOnly => _nightOnly;
+        internal bool HiddenForTutorial => _useTutorialYield && _hideDuringTutorial;
         public bool IsCollected { get { return _isCollected; } }
         internal bool IsMonster => _isMonster;
         internal int HitPoints => _hitPoints;
         internal int MaxHitPoints => _initialHitPoints;
 
-        public void SetTutorialYield(bool useTutorialYield)
+        public void SetHarvestYield(bool useTutorialYield, WorldClock clock, int dayYield)
         {
             _useTutorialYield = useTutorialYield;
+            _clock = clock;
+            _dayYield = dayYield;
         }
 
         public bool IsAvailable
         {
-            get { return !_isCollected && gameObject.activeInHierarchy; }
+            get { return !_isCollected && gameObject.activeInHierarchy && YieldCount > 0; }
+        }
+
+        internal void RefreshAvailability()
+        {
+            gameObject.SetActive(!_isCollected && YieldCount > 0);
         }
 
         public Transform OutlineTarget
@@ -135,7 +158,7 @@ namespace HamPocha.Gameplay
             return new TargetSaveData { Id = SaveKey.Get(this), Position = transform.position,
                 SpawnPosition = _spawnPosition, HitPoints = _hitPoints,
                 MaxHitPoints = _isMonster ? _initialHitPoints : 0, IsCollected = _isCollected,
-                IsActive = gameObject.activeSelf };
+                IsActive = !_isCollected, HarvestedAmount = _harvestedAmount, NoHarvestReward = _noHarvestReward };
         }
 
         public void Restore(TargetSaveData data)
@@ -144,11 +167,13 @@ namespace HamPocha.Gameplay
             _spawnPosition = data.SpawnPosition;
             _hitPoints = RestoreHitPoints(data);
             _isCollected = data.IsCollected;
+            _harvestedAmount = data.HarvestedAmount;
+            _noHarvestReward = data.NoHarvestReward;
             transform.position = data.Position;
             Rigidbody body = GetComponent<Rigidbody>();
             if (body != null) body.position = data.Position;
 
-            gameObject.SetActive(data.IsActive);
+            RefreshAvailability();
             Monster monster = GetComponent<Monster>();
             if (monster != null) monster.RestorePatrol(data.SpawnPosition);
         }
@@ -170,7 +195,7 @@ namespace HamPocha.Gameplay
             return Mathf.Max(1, _initialHitPoints - priorHits * ForestCombatRules.PlayerAttack);
         }
 
-        public bool TryHarvest(Inventory inventory, out string message)
+        public bool TryHarvest(Inventory inventory, out string message, int playerLevel = 1)
         {
             if (!IsAvailable || inventory == null)
             {
@@ -180,11 +205,15 @@ namespace HamPocha.Gameplay
                 return false;
             }
 
-            int damage = _isMonster ? ForestCombatRules.PlayerAttack : 1;
+            int damage = _isMonster ? ForestCombatRules.PlayerAttackAtLevel(playerLevel) : 1;
             if (_hitPoints > damage)
             {
                 _hitPoints -= damage;
-                if (_isMonster && TryGetComponent(out Monster monster)) monster.PlayHitMotion();
+                if (_isMonster)
+                {
+                    if (TryGetComponent(out Monster monster)) monster.PlayHitMotion();
+                    ForestFeedbackHud.ShowDamage(transform, damage, player: false);
+                }
                 message = MonsterLabel + " 타격 · 남은 체력 " + _hitPoints;
 
                 if (Debug.isDebugBuild)
@@ -204,9 +233,12 @@ namespace HamPocha.Gameplay
                 return false;
             }
 
+            if (_isMonster) ForestFeedbackHud.ShowDamage(transform, _hitPoints, player: false);
             _hitPoints = 0;
             _isCollected = true;
+            _harvestedAmount = amount;
             message = Inventory.GetIngredientName(_ingredient) + " +" + amount + "개 획득";
+            ForestFeedbackHud.ShowIngredient(_ingredient, amount);
             Sfx.Play(SfxCue.Harvest);
             if (Application.isPlaying && !_isMonster && _harvestDust != null)
             {

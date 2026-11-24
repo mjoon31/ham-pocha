@@ -44,6 +44,8 @@ namespace HamPocha.Gameplay
         internal bool CanTakeNewOrders => CurrentActivity == PlayerActivity.Business &&
             BusinessState == DailyBusinessState.Open && _worldClock.IsDaytime;
         internal bool IsClosing => CurrentActivity == PlayerActivity.Business && BusinessState == DailyBusinessState.LastOrder;
+        internal bool HasPendingBusinessSummary => _station != null && _station.SummaryPending;
+        internal bool CanFinishCurrentBusiness => CanTakeNewOrders;
         internal bool CanOpenAtCurrentTime => _worldClock.Hour >= OpeningHour &&
             _openedBusinessDay != _worldClock.BusinessDayNumber;
         internal bool HasOpenedBusinessToday => _openedBusinessDay == _worldClock.BusinessDayNumber;
@@ -115,10 +117,10 @@ namespace HamPocha.Gameplay
             if (BusinessState == DailyBusinessState.Open && !_worldClock.IsDaytime)
             {
                 SetBusinessState(DailyBusinessState.LastOrder);
-                PochaKitchen.Current?.ReleaseUnacceptedOrders();
+                _station?.ReleaseArrivingOrders();
+                Debug.Log("[Gameplay] event=business_midnight result=serving_remaining_guests", this);
             }
-            if (IsClosing && (_station == null || !_station.HasAcceptedOrders()))
-                FinishBusiness();
+            if (IsClosing && (_station == null || !_station.HasWaitingCustomers())) FinishBusiness();
         }
 
         public SessionSaveData Capture()
@@ -308,12 +310,12 @@ namespace HamPocha.Gameplay
                 return false;
             }
 
-            if (_station != null && _station.HasCarriedFood)
+            if (_worldClock.IsDaytime && !IsClosing && _station != null && _station.HasCarriedFood)
             {
                 message = "들고 있는 음식을 서빙하거나 지정 장소에서 폐기하세요";
                 return false;
             }
-            if (!CanTakeNewOrders)
+            if (!CanFinishCurrentBusiness)
             {
                 message = "새 주문 종료 · 남은 주문 처리 중";
                 return false;
@@ -326,7 +328,7 @@ namespace HamPocha.Gameplay
 
         private void FinishBusiness()
         {
-            bool midnight = IsClosing;
+            bool midnight = IsClosing || !_worldClock.IsDaytime;
             SetBusinessState(DailyBusinessState.Closed);
             SetActivity(PlayerActivity.FreeRoam);
             if (_station != null) _station.CompleteBusinessIfNeeded(midnight);
@@ -405,8 +407,6 @@ namespace HamPocha.Gameplay
             }
 
             CurrentActivity = activity;
-            if (activity == PlayerActivity.Exploration || activity == PlayerActivity.Business)
-                GameplayAnalytics.StartNextActivity();
             _fatigue.SetActivity(activity);
             StateVersion++;
 

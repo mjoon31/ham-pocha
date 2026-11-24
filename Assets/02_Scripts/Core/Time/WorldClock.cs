@@ -7,6 +7,8 @@ namespace HamPocha.Core
     {
         public const int MorningHour = 6;
         public const int OpeningHour = 12;
+        public const int SunsetHour = 18;
+        private const int FullSunsetHour = 20;
         private const float TutorialOpeningDeadline = 18f * 3600f;
         private const float TutorialSleepDeadline = 5f * 3600f;
         private const float SecondsPerDay = 86400f;
@@ -67,6 +69,12 @@ namespace HamPocha.Core
         {
             get { return _secondsIntoDay / SecondsPerDay; }
         }
+
+        public bool IsSunset => Hour >= SunsetHour;
+
+        internal float SunsetWeight => IsSunset
+            ? Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(SunsetHour / 24f, FullSunsetHour / 24f, DayProgress))
+            : 0f;
 
         public float LightingProgress
         {

@@ -58,7 +58,8 @@
     "0a6b3a75-1d2a-4850-bd07-9ae5ae4a5db6",
     "f3f83a71-c915-487f-824c-7b89729c0757",
     "096b1334-311c-44ee-a3a4-b69ab9c01f25",
-    "2bd7d4d6-bf5f-4800-908a-202098ed3614"
+    "2bd7d4d6-bf5f-4800-908a-202098ed3614",
+    "81524128-66f8-4737-b949-4edf65f7dcd5"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
@@ -191,7 +192,7 @@
     "Docs/Git/Public_Sync_Workflow.md": "02879fa423b203d0a1b203b11e3060bb83817b20",
     "Docs/Rules/Development_Records_Rules.md": "ba5f50e071b6a5357f27380dfd2a38fc07572e7a",
     "Docs/Rules/Test_Rules.md": "6c61ff15a4e233db08c726f1ad54e8a4a4332e29",
-    "Assets/02_Scripts/Core/Time/WorldClock.cs": "c39be59588dfae8bbf6eaf64a5675a031f930372",
+    "Assets/02_Scripts/Core/Time/WorldClock.cs": "8180b0256be5c911ac7058bcb9c5a17222f8bb28",
     "Assets/02_Scripts/Gameplay/Business/CookingStation.cs": "941336207078f205517670b13cf8c652c9d01fa5",
     "Assets/02_Scripts/Gameplay/Business/KitchenStock.cs": "8f898a84fd6e5fc17acd694adf5a854517c86aa8",
     "Assets/02_Scripts/Gameplay/Business/PochaKitchen.cs": "be60da8f92e45741753b753a27a07feea80ae7a3",
@@ -200,7 +201,7 @@
     "Assets/02_Scripts/Gameplay/Session/GameSessionState.cs": "2c0d9256a76ea1bb17189addd37bc68b5dda01f5",
     "Assets/02_Scripts/UI/Tutorial/TutorialUi.cs": "1453da1eaadf6242cc6b8cb77d1300141c6ea4ba",
     "Docs/Architecture/Tutorial_Flow.md": "e59473a35762d9e0b6ad1ed25e11ed8c01dd4bf2",
-    "Docs/Issue_Records/Records/IR-20261117-004_business-rework.md": "536702094fee76fdb32eb6e378fe509e930a537f",
+    "Docs/Issue_Records/Records/IR-20261117-004_business-rework.md": "4c47c0f796b2069e361f4d3d43dc845349e9647a",
     "Docs/Test/Logs/2026-11-16_tutorial.md": "10448e40b466ac4323bb7a0a0fa20401df2f8db4",
     "Docs/Test/Logs/2026-11-20_daily-gameplay.md": "3a0b4c1f8bfd4a08359b96e914ba9aab38466e0e",
     "Docs/Test/Logs/2026-11-21_pocha-close-and-outdoor-queue.md": "a853ce230f68aa0266676bb1a3251f7bf424b898",

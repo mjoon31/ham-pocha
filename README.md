@@ -2,7 +2,7 @@
 
 <img src="https://mjoon31.github.io/mjoon31/assets/media/ham-pocha/app-icon.png" alt="햄포차 앱 아이콘" width="140" align="left" />
 
-**3D 탐험 | 요리 | 포장마차 경영**
+**캐주얼 | 경영 | 시뮬레이션**
 
 **플랫폼** Android | 가로 화면 | 싱글 플레이
 
@@ -37,10 +37,10 @@
 ## AI 협업과 검수
 
 - **기획과 결정** — 제가 게임 방향과 우선순위, 기능별 완료 기준을 정했습니다. AI가 대안과 영향 범위를 정리하면, 적용할 방식과 범위를 직접 선택했습니다.
-- **구현과 도구화** — AI는 확정한 범위에 맞춰 기존 Unity 코드와 에셋을 확인하고 구현·수정·검사를 진행했습니다. 프리팹 격자 등록처럼 반복되는 작업은 에디터 도구로 만들고 사용 절차와 검증 결과를 남겼습니다.
+- **구현과 도구화** — AI는 확정한 범위에 맞춰 기존 Unity 코드와 에셋을 확인하고 구현과 수정, 검사를 진행했습니다. 프리팹 격자 등록처럼 반복되는 작업은 에디터 도구로 만들고 사용 절차와 검증 결과를 남겼습니다.
 - **검수와 재수정** — Android 실기기에서 플레이 흐름과 조작을 직접 확인하고, 관찰한 문제를 재현 조건과 함께 전달했습니다. AI는 수정과 재검사를 진행했고, 이슈와 테스트 기록에는 개발자 판단, 실제 변경, 검수 주체와 결과를 구분해 남겼습니다.
 
-[역할과 작업 흐름](https://github.com/mjoon31/ham-pocha/wiki/AI-Workflow) · [AI 협업 과정과 주요 사례](https://github.com/mjoon31/ham-pocha/wiki/AI-Collaboration)
+[역할과 작업 흐름](https://github.com/mjoon31/ham-pocha/wiki/AI-Workflow) | [AI 협업 과정과 주요 사례](https://github.com/mjoon31/ham-pocha/wiki/AI-Collaboration)
 
 Google Play 비공개 테스트와 출시를 준비하고 있습니다. 빌드별 확인 범위는 [검증 현황](https://github.com/mjoon31/ham-pocha/wiki/Validation-and-Status)에 정리했습니다.
 

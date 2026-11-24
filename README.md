@@ -6,7 +6,7 @@
   <kbd>Android</kbd> &nbsp; <kbd>싱글 플레이</kbd> &nbsp; <kbd>출시 준비 중</kbd>
 </p>
 
-<p align="center"><strong>개발 기간</strong> 2026년 11/5~11/6, 11/11~11/23</p>
+<p align="center"><strong>개발 기간</strong> 2026년 11/5&#126;11/6, 11/11&#126;11/23</p>
 
 <p align="center">
   <a href="https://mjoon31.github.io/mjoon31/projects/ham-pocha/">햄포차 프로젝트 소개</a>

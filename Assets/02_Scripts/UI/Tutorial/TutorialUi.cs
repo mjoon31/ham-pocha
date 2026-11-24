@@ -73,6 +73,7 @@ namespace HamPocha.UI
         private Image _shade;
         private TutorialButtonFocus _buttonFocus;
         private TutorialButtonFocus _confirmFocus;
+        private TutorialButtonFocus _joystickFocus;
         private TutorialTouch _joystickTouch;
         private ForestEntryUi _entryUi;
         private ForestRegrowth _gatherRegion;
@@ -123,6 +124,7 @@ namespace HamPocha.UI
         private Bounds _panMarketBounds;
         private bool _hasPanMarketBounds;
         private RectTransform _secondCursor;
+        private RectTransform _joystickCursor;
         private Button _skipButton;
         private RectTransform _skipCard;
         private PanelMotion _skipDialog;
@@ -325,6 +327,7 @@ namespace HamPocha.UI
             RectTransform buttonFocus = CreateRect("ButtonFocus", root, Vector2.one * .5f, Vector2.zero, Vector2.zero);
             _buttonFocus = new TutorialButtonFocus(buttonFocus);
             _confirmFocus = new TutorialButtonFocus(buttonFocus);
+            _joystickFocus = new TutorialButtonFocus(buttonFocus);
             RectTransform box = CreateRect("Guide", root, new Vector2(GuideLeft, 0), Vector2.up * GuideBottom, new Vector2(0, GuideMinHeight));
             box.anchorMax = new Vector2(GuideRight, 0);
             box.pivot = new Vector2(.5f, 0f);
@@ -365,6 +368,8 @@ namespace HamPocha.UI
             {
                 _cursor = HudLayout.Icon("GuideCursor", root, Vector2.zero, Vector2.one * CursorSize, cursor).rectTransform;
                 _secondCursor = HudLayout.Icon("SecondGuideCursor", root, Vector2.zero, Vector2.one * CursorSize, cursor).rectTransform;
+                _joystickCursor = HudLayout.Icon("JoystickGuideCursor", root, Vector2.zero, Vector2.one * CursorSize, cursor).rectTransform;
+                _joystickCursor.gameObject.SetActive(false);
                 _secondCursor.gameObject.SetActive(false);
                 _cursor.gameObject.SetActive(false);
             }
@@ -1627,6 +1632,7 @@ namespace HamPocha.UI
                 InteractionOutline.ShowTutorial(null);
                 _buttonFocus?.Show(null, default);
                 _confirmFocus?.Show(null, default);
+                ShowWheelJoystickFocus(null, null);
                 return;
             }
             if (_skipDialog.IsOpen)
@@ -1634,6 +1640,7 @@ namespace HamPocha.UI
                 InteractionOutline.ShowTutorial(null);
                 _buttonFocus.Show(null, default);
                 _confirmFocus.Show(null, default);
+                ShowWheelJoystickFocus(null, null);
                 HideCursor();
                 if (_secondCursor != null) _secondCursor.gameObject.SetActive(false);
                 return;
@@ -1692,6 +1699,7 @@ namespace HamPocha.UI
             _shade.color = new Color(0f, 0f, 0f,
                 touch || notice && _firstDayNoticeFocus != null ? TouchShadeAlpha : noticeAlpha);
             _buttonFocus.Show(visualControl, visualControl != null ? ScreenRect(visualControl, eventCamera) : default);
+            ShowWheelJoystickFocus(WheelJoystickTarget(notice), eventCamera);
             RectTransform confirm = FirstDayRound > 0 ? _firstDaySecond :
                 touch ? KitchenConfirmFocus : null;
             _confirmFocus.Show(confirm, confirm != null ? ScreenRect(confirm, eventCamera) : default);
@@ -1796,6 +1804,29 @@ namespace HamPocha.UI
         {
             _exhibit = exhibit;
             _exhibitCamera = camera;
+        }
+
+        private RectTransform WheelJoystickTarget(bool notice)
+        {
+            if (notice || _panning || _mask.BlockAll || PochaKitchen.Current?.HasIndoorSlotWheel != true)
+                return null;
+
+            RectTransform joystick = _input.TutorialJoystick;
+            // 손가락은 이미 조작할 수 있는 조이스틱만 안내한다.
+            bool inputAllowed = !_mask.gameObject.activeSelf || !_mask.ExclusiveUi ||
+                _mask.AllowedUi == joystick || _mask.AllowedJoystick == joystick;
+            return inputAllowed && joystick.gameObject.activeInHierarchy ? joystick : null;
+        }
+
+        private void ShowWheelJoystickFocus(RectTransform target, Camera eventCamera)
+        {
+            _joystickFocus?.Show(target, target != null ? ScreenRect(target, eventCamera) : default);
+            if (_joystickCursor == null) return;
+            bool visible = target != null;
+            if (Debug.isDebugBuild && _joystickCursor.gameObject.activeSelf != visible)
+                Debug.Log($"[UI] event=tutorial_wheel_joystick result={(visible ? "shown" : "hidden")} round={FirstDayRound}", this);
+            if (visible) ShowTouchFocus(target, eventCamera, _joystickCursor);
+            else _joystickCursor.gameObject.SetActive(false);
         }
 
         private void ShowTouchFocus(RectTransform touchTarget, Camera eventCamera, RectTransform cursor = null)
@@ -1987,6 +2018,7 @@ namespace HamPocha.UI
         {
             _buttonFocus?.Dispose();
             _confirmFocus?.Dispose();
+            _joystickFocus?.Dispose();
             if (Current == this) Current = null;
         }
 
@@ -1997,6 +2029,7 @@ namespace HamPocha.UI
             InteractionOutline.ShowTutorial(null);
             _buttonFocus?.Show(null, default);
             _confirmFocus?.Show(null, default);
+            ShowWheelJoystickFocus(null, null);
             if (_panRoutine != null) StopCoroutine(_panRoutine);
             RestoreCamera();
             if (_loader != null) _loader.SetTutorialMovementBlocked(false);

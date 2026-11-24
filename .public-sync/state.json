@@ -54,7 +54,8 @@
     "0afc568f-f52f-4d75-8087-700f17c9d94e",
     "79568cd1-1071-4f3f-b237-af9d0247a697",
     "8b8d77f1-49a7-4199-b575-4c7312ed37b2",
-    "9590d897-4bb6-457f-9741-55c72590c4bc"
+    "9590d897-4bb6-457f-9741-55c72590c4bc",
+    "0a6b3a75-1d2a-4850-bd07-9ae5ae4a5db6"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
@@ -190,18 +191,18 @@
     "Assets/02_Scripts/Core/Time/WorldClock.cs": "c39be59588dfae8bbf6eaf64a5675a031f930372",
     "Assets/02_Scripts/Gameplay/Business/CookingStation.cs": "941336207078f205517670b13cf8c652c9d01fa5",
     "Assets/02_Scripts/Gameplay/Business/KitchenStock.cs": "f954361092471f1b5f9998e0a2f05f02e1edcd03",
-    "Assets/02_Scripts/Gameplay/Business/PochaKitchen.cs": "056d757377b78c424416fe62a18d2686e1ab203f",
+    "Assets/02_Scripts/Gameplay/Business/PochaKitchen.cs": "c48da2cad000293598f4e7de5162a91296a10140",
     "Assets/02_Scripts/Gameplay/Exploration/HarvestTarget.cs": "9e35da5f884c2580e2526d9fc53c0f443d2a7aca",
     "Assets/02_Scripts/Gameplay/Inventory/Inventory.cs": "b3dba26c815cc6bcf77f4fc83c845542a753716d",
     "Assets/02_Scripts/Gameplay/Session/GameSessionState.cs": "2c0d9256a76ea1bb17189addd37bc68b5dda01f5",
-    "Assets/02_Scripts/UI/Tutorial/TutorialUi.cs": "e75c9170a56023b41f03e2b7f1271848c4df97a7",
-    "Docs/Architecture/Tutorial_Flow.md": "2d4f79b1e658eadee0d891dc6233618df6c790ba",
+    "Assets/02_Scripts/UI/Tutorial/TutorialUi.cs": "1453da1eaadf6242cc6b8cb77d1300141c6ea4ba",
+    "Docs/Architecture/Tutorial_Flow.md": "e59473a35762d9e0b6ad1ed25e11ed8c01dd4bf2",
     "Docs/Issue_Records/Records/IR-20261117-004_business-rework.md": "536702094fee76fdb32eb6e378fe509e930a537f",
     "Docs/Test/Logs/2026-11-16_tutorial.md": "10448e40b466ac4323bb7a0a0fa20401df2f8db4",
     "Docs/Test/Logs/2026-11-20_daily-gameplay.md": "3a0b4c1f8bfd4a08359b96e914ba9aab38466e0e",
     "Docs/Test/Logs/2026-11-21_pocha-close-and-outdoor-queue.md": "a853ce230f68aa0266676bb1a3251f7bf424b898",
     "Docs/Test/Logs/2026-11-21_grid-registration.md": "8cbd0cf1ce8b7c8568a69cd59d4f68a43e8b55f9",
     "Docs/Test/Logs/2026-11-23_first-day-flow.md": "81c734de39f4bbe1ec9eb69437d7f3e61686055a",
-    "README.md": "7b3eda6dad7d7118318e80b8a2d654ee188c3778"
+    "README.md": "f135a198d2b20344103a4b1d97eaa0f75e4062ad"
   }
 }

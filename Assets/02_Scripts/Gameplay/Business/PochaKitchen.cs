@@ -121,6 +121,7 @@ namespace HamPocha.Gameplay
             ? _hud?.TutorialSelectedSlot(_selected) : _hud?.TutorialWheelTarget(FirstBusinessWheelItem());
         internal bool HasSelectedTutorialWheelSlot => HasWheel && _wheel != Wheel.Display &&
             _selected >= 0 && _selected < _wheelSize && _wheelItems[_selected] >= 0;
+        internal bool HasIndoorSlotWheel => _wheel is Wheel.Fridge or Wheel.Food or Wheel.Cook;
         internal Transform TutorialOutdoorCooker => _outdoor[0];
         internal Transform TutorialExit => _exitMat != null ? _exitMat.transform : null;
         internal RectTransform TutorialBusinessButton => _hud?.TutorialBusinessButton;

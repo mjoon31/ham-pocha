@@ -16,7 +16,7 @@
 
 <br clear="left" />
 
-계절 숲에서 모은 재료로 마을의 작은 포차를 운영하는 Android 게임입니다. 손님의 주문을 받아 직접 조리하고 서빙합니다. 장사로 얻은 골드와 경험치로 레시피를 강화하고 새 숲과 야시장을 엽니다.
+햄포차는 햄스터가 숲에서 재료를 모아, 마을의 포차를 운영하는 캐주얼 경영 시뮬레이션 게임입니다. 손님의 주문을 받아 직접 조리하고 서빙합니다. 장사로 얻은 골드와 경험치로 레시피를 강화하고 새 숲과 야시장을 엽니다.
 
 [프로젝트 상세 소개](https://mjoon31.github.io/mjoon31/projects/ham-pocha/) | [프로젝트 자료](https://mjoon31.github.io/mjoon31/projects/ham-pocha/#resources) | [AI 협업 과정과 주요 사례](https://github.com/mjoon31/ham-pocha/wiki/AI-Collaboration) | [개발 위키](https://github.com/mjoon31/ham-pocha/wiki)
 

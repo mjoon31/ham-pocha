@@ -65,7 +65,8 @@
     "e3df0e9e-5b77-4d1d-8f44-75240cdc7e9d",
     "780057ab-b215-455f-958f-771988f0f251",
     "a4d095f3-eb71-43a8-81f7-aaceecabd37c",
-    "fe1abaa1-d662-46cf-b559-85fe6928019a"
+    "fe1abaa1-d662-46cf-b559-85fe6928019a",
+    "4e8f625c-9bcd-4e1f-b1e9-b262c22e84ad"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
@@ -206,7 +207,7 @@
     "Assets/02_Scripts/Gameplay/Inventory/Inventory.cs": "b3dba26c815cc6bcf77f4fc83c845542a753716d",
     "Assets/02_Scripts/Gameplay/Session/GameSessionState.cs": "711b58ce2c36d50b07693c166617e99e3097eb34",
     "Assets/02_Scripts/UI/Tutorial/TutorialUi.cs": "ad0a97864aa3b361de73032538597409894cfc9c",
-    "Docs/Architecture/Tutorial_Flow.md": "451f746f99acaa010263c2ba8096f60f85cfc7f3",
+    "Docs/Architecture/Tutorial_Flow.md": "9ee7faffc6654aa2705535d12d12d7c475b4cfb2",
     "Docs/Issue_Records/Records/IR-20261117-004_business-rework.md": "ce4c0a2df64549fb6f3fc23e4a0e0642639e0a93",
     "Docs/Test/Logs/2026-11-16_tutorial.md": "10448e40b466ac4323bb7a0a0fa20401df2f8db4",
     "Docs/Test/Logs/2026-11-20_daily-gameplay.md": "3a0b4c1f8bfd4a08359b96e914ba9aab38466e0e",

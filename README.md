@@ -1,4 +1,4 @@
-<h1 align="center">🐹 햄포차 <small>· Ham Pocha</small></h1>
+<h1 align="center">🐹 햄포차 <small>| Ham Pocha</small></h1>
 
 <p align="center"><strong>낮에는 숲에서 재료를 모으고, 저녁에는 햄스터 포차를 엽니다.</strong></p>
 
@@ -45,14 +45,14 @@
 | 자료 | 확인할 내용 |
 | --- | --- |
 | [기술 기준선](Docs/Architecture/Technical_Baseline.md) | 개발 환경과 기술 선택 |
-| [씬 연결](Docs/Architecture/Scene_Flow.md) · [첫 영업일 검증](Docs/Test/Logs/2026-11-23_first-day-flow.md) | 게임 흐름과 첫 영업일에서 확인한 범위 |
+| [씬 연결](Docs/Architecture/Scene_Flow.md) &#124; [첫 영업일 검증](Docs/Test/Logs/2026-11-23_first-day-flow.md) | 게임 흐름과 첫 영업일에서 확인한 범위 |
 | [격자 일괄 등록 검증](Docs/Test/Logs/2026-11-21_grid-registration.md) | 신규 프리팹 등록, 재실행과 한 번에 되돌리기 |
 | [작업 과정](Docs/Issue_Records/README.md) | 요청, 결정, 수정과 재검증 |
 | [테스트 기록](Docs/Test/Logs/README.md) | Unity와 Android에서 확인한 범위 |
-| [문서 목차](Docs/README.md) | 기획·기술·검증 자료의 진입점 |
+| [문서 목차](Docs/README.md) | 기획, 기술, 검증 자료의 진입점 |
 
 ### 출시 준비
 
-Google Play 비공개 테스트와 출시를 준비하고 있습니다. Google Play Console 계정 승인과 보상형 광고용 AdMob 계정 확인을 기다리고 있습니다.
+Google Play 대한민국 비공개 테스트를 준비하고 있습니다. Unity와 Android 기기에서 게임을 검수했으며, Google Play 설치본의 로그인·저장·보상 광고는 비공개 테스트 배포 후 확인합니다.
 
 공개 저장소에서 검수한 개발 문서와 공개 범위에 포함된 원본 코드를 볼 수 있습니다. 플레이 영상, 스크린샷과 프로젝트 자료는 [햄포차 프로젝트 소개](https://mjoon31.github.io/mjoon31/projects/ham-pocha/)에 모았습니다.

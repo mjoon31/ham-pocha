@@ -63,7 +63,8 @@
     "0613dbfe-a0b5-4d12-aedc-3132b1a9a869",
     "ef18f793-5dee-4027-821b-22766ecc2a1f",
     "e3df0e9e-5b77-4d1d-8f44-75240cdc7e9d",
-    "780057ab-b215-455f-958f-771988f0f251"
+    "780057ab-b215-455f-958f-771988f0f251",
+    "a4d095f3-eb71-43a8-81f7-aaceecabd37c"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
@@ -211,6 +212,6 @@
     "Docs/Test/Logs/2026-11-21_pocha-close-and-outdoor-queue.md": "a853ce230f68aa0266676bb1a3251f7bf424b898",
     "Docs/Test/Logs/2026-11-21_grid-registration.md": "8cbd0cf1ce8b7c8568a69cd59d4f68a43e8b55f9",
     "Docs/Test/Logs/2026-11-23_first-day-flow.md": "81c734de39f4bbe1ec9eb69437d7f3e61686055a",
-    "README.md": "65845416f971df92faab7aba7372584bd30fa31f"
+    "README.md": "cc1985ada720fa44c292f4f87ebd4908bd18b644"
   }
 }

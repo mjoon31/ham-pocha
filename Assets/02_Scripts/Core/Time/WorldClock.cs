@@ -3,18 +3,29 @@ using HamPocha.Gameplay;
 
 namespace HamPocha.Core
 {
+    internal enum LightingArea { Outdoors, Home, PochaInterior }
+
     public class WorldClock : MonoBehaviour
     {
         public const int MorningHour = 6;
         public const int OpeningHour = 12;
-        public const int SunsetHour = 18;
-        private const int FullSunsetHour = 20;
+        public const int SunsetHour = 17;
+        public const int EveningHour = 21;
+        private const int FullSunsetHour = 19;
         private const float TutorialOpeningDeadline = 18f * 3600f;
         private const float TutorialSleepDeadline = 5f * 3600f;
         private const float SecondsPerDay = 86400f;
         private const float SecondsPerHour = 3600f;
         private const float LightingTransitionSeconds = .85f;
-        private const int MissingLightingPhase = -2;
+
+        private struct LightingTransition
+        {
+            public bool Initialized;
+            public int Phase;
+            public double StartedAt;
+            public Vector2 From;
+            public Vector2 To;
+        }
 
         [Header("World Time Settings")]
         [Tooltip("게임 하루에 해당하는 실제 시간입니다. 타이밍 SO를 우선 적용합니다.")]
@@ -32,11 +43,8 @@ namespace HamPocha.Core
         private bool _skipNextTick = true;
         // 임시 확인 모드는 조명과 그림자만 바꾸고 실제 시간과 저장에는 쓰지 않는다.
         private float? _lightingPreviewProgress;
-        private int _lightingTargetPhase = MissingLightingPhase;
-        private double _lightingTransitionStart;
-        // x는 그림자 방향 위치, y는 낮 조명과 그림자의 비중이다.
-        private Vector2 _lightingFrom;
-        private Vector2 _lightingTo;
+        private LightingTransition _worldLighting;
+        private LightingTransition _pochaLighting;
 
         private int _resumeAfterFrame;
         public bool CanAdvanceTimers { get { return CanAdvance && Time.frameCount > _resumeAfterFrame; } }
@@ -72,33 +80,42 @@ namespace HamPocha.Core
             get { return _secondsIntoDay / SecondsPerDay; }
         }
 
-        private bool HoldsBusinessSunset => !IsDaytime && _session != null &&
+        internal bool HoldsBusinessSunset => !IsDaytime && _session != null && !_session.ClosedBusinessManually &&
             (_session.CurrentActivity == PlayerActivity.Business || _session.HasPendingBusinessSummary);
+        internal bool ClosedBusinessManually => _session != null && _session.ClosedBusinessManually;
 
-        public bool IsSunset => Hour >= SunsetHour || HoldsBusinessSunset;
+        internal static bool IsForestAttackHour(int hour) =>
+            (hour >= EveningHour && hour < 24) || (hour >= 0 && hour < MorningHour);
 
-        private float SunsetWeight => HoldsBusinessSunset ? 1f :
-            Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(SunsetHour / 24f, FullSunsetHour / 24f, DayProgress));
+        internal bool IsForestCombatTime => IsForestAttackHour(Hour);
+        internal bool IsOutdoorEvening => !_lightingPreviewProgress.HasValue && Hour >= EveningHour;
 
-        // 밤으로 넘어가는 동안에도 노을의 색과 가로등 밝기를 같이 잇는다.
-        internal float GetSunsetLightingWeight(float dayWeight) =>
-            IsDaytime || IsSunset ? SunsetWeight : dayWeight;
+        internal bool IsSunset(LightingArea area) => Hour >= SunsetHour || KeepsBusinessSunset(area);
 
-        public float LightingProgress
+        private bool KeepsBusinessSunset(LightingArea area) =>
+            area == LightingArea.PochaInterior && HoldsBusinessSunset;
+
+        internal float GetSunsetLightingWeight(LightingArea area, float dayWeight)
         {
-            get
-            {
-                float morning = MorningHour * SecondsPerHour;
-                float daylight = (_secondsIntoDay - morning) / (SecondsPerDay - morning);
-                if (_lightingPreviewProgress.HasValue) return _lightingPreviewProgress.Value;
-                if (HoldsBusinessSunset) return .499f;
-                return IsDaytime ? daylight * .5f : .5f;
-            }
+            if (KeepsBusinessSunset(area)) return 1f;
+            if (!IsDaytime) return dayWeight;
+            float rise = Mathf.InverseLerp(SunsetHour * SecondsPerHour, FullSunsetHour * SecondsPerHour, _secondsIntoDay);
+            return Mathf.SmoothStep(0f, 1f, rise);
+        }
+
+        internal int GetLightingPhase(LightingArea area)
+        {
+            if (_lightingPreviewProgress.HasValue) return DayShadows.PhaseAt(_lightingPreviewProgress.Value);
+            if (KeepsBusinessSunset(area)) return 2;
+            if (!IsDaytime) return -1;
+            float morning = MorningHour * SecondsPerHour;
+            float daylight = (_secondsIntoDay - morning) / (SecondsPerDay - morning);
+            return DayShadows.PhaseAt(daylight * .5f);
         }
 
         public int AdvanceLightingPreview()
         {
-            int phase = DayShadows.PhaseAt(LightingProgress);
+            int phase = GetLightingPhase(LightingArea.Outdoors);
             int next = phase < 0 ? 0 : phase + 1;
             _lightingPreviewProgress = (next + .5f) / 6f;
             return next;
@@ -109,33 +126,49 @@ namespace HamPocha.Core
             _lightingPreviewProgress = null;
         }
 
-        public void GetLightingBlend(out float phasePosition, out float dayWeight)
+        internal void GetLightingBlend(LightingArea area, out float phasePosition, out float dayWeight)
         {
-            Vector2 blend = EvaluateLightingBlend(DayShadows.PhaseAt(LightingProgress), Time.unscaledTimeAsDouble);
+            int phase = GetLightingPhase(area);
+            double now = Time.unscaledTimeAsDouble;
+            Vector2 blend = area == LightingArea.PochaInterior
+                ? EvaluateLightingBlend(ref _pochaLighting, phase, now)
+                : EvaluateLightingBlend(ref _worldLighting, phase, now);
             phasePosition = blend.x;
             dayWeight = blend.y;
+            if (_lightingPreviewProgress.HasValue) return;
+            if (area == LightingArea.Home && !IsDaytime) dayWeight = 0f;
+            if (area != LightingArea.Outdoors) return;
+
+            // 야외는 자정까지 낮 조명 비중을 줄여 00:00에 밝기가 되돌아오지 않게 한다.
+            if (!IsDaytime) dayWeight = 0f;
+            else if (IsOutdoorEvening)
+            {
+                float fade = Mathf.InverseLerp(EveningHour * SecondsPerHour, SecondsPerDay, _secondsIntoDay);
+                dayWeight *= 1f - Mathf.SmoothStep(0f, 1f, fade);
+            }
         }
 
-        private Vector2 EvaluateLightingBlend(int targetPhase, double now)
+        private static Vector2 EvaluateLightingBlend(ref LightingTransition transition, int targetPhase, double now)
         {
-            if (_lightingTargetPhase == MissingLightingPhase)
+            if (!transition.Initialized)
             {
-                _lightingTargetPhase = targetPhase;
-                _lightingFrom = _lightingTo = new Vector2(Mathf.Max(0, targetPhase), targetPhase < 0 ? 0f : 1f);
-                _lightingTransitionStart = now;
-                return _lightingTo;
+                transition.Initialized = true;
+                transition.Phase = targetPhase;
+                transition.From = transition.To = new Vector2(Mathf.Max(0, targetPhase), targetPhase < 0 ? 0f : 1f);
+                transition.StartedAt = now;
+                return transition.To;
             }
 
-            float elapsed = (float)(now - _lightingTransitionStart);
+            float elapsed = (float)(now - transition.StartedAt);
             float t = Mathf.SmoothStep(0f, 1f, elapsed / LightingTransitionSeconds);
-            Vector2 current = Vector2.Lerp(_lightingFrom, _lightingTo, t);
-            if (targetPhase == _lightingTargetPhase) return current;
+            Vector2 current = Vector2.Lerp(transition.From, transition.To, t);
+            if (targetPhase == transition.Phase) return current;
 
             if (targetPhase >= 0 && current.y == 0f) current.x = targetPhase;
-            _lightingFrom = current;
-            _lightingTo = targetPhase < 0 ? new Vector2(current.x, 0f) : new Vector2(targetPhase, 1f);
-            _lightingTransitionStart = now;
-            _lightingTargetPhase = targetPhase;
+            transition.From = current;
+            transition.To = targetPhase < 0 ? new Vector2(current.x, 0f) : new Vector2(targetPhase, 1f);
+            transition.StartedAt = now;
+            transition.Phase = targetPhase;
             return current;
         }
 
@@ -180,6 +213,7 @@ namespace HamPocha.Core
         private void Advance(float worldSeconds)
         {
             bool wasDaytime = IsDaytime;
+            bool wasForestCombatTime = IsForestCombatTime;
             int previousBusinessDay = BusinessDayNumber;
             float previousTime = _secondsIntoDay;
             _secondsIntoDay += worldSeconds;
@@ -209,6 +243,8 @@ namespace HamPocha.Core
             }
             if (wasDaytime != IsDaytime && Debug.isDebugBuild)
                 Debug.Log($"[Gameplay] event=daylight_period result=changed daytime={IsDaytime}", this);
+            if (wasForestCombatTime != IsForestCombatTime && Debug.isDebugBuild)
+                Debug.Log($"[Gameplay] event=forest_combat_time result=changed active={IsForestCombatTime} hour={Hour:00}", this);
             if (previousBusinessDay != BusinessDayNumber && Debug.isDebugBuild)
                 Debug.Log($"[Gameplay] event=business_day result=advanced day={BusinessDayNumber}", this);
         }
@@ -292,7 +328,8 @@ namespace HamPocha.Core
         public void Restore(int day, float secondsIntoDay)
         {
             ClearLightingPreview();
-            _lightingTargetPhase = MissingLightingPhase;
+            _worldLighting = default;
+            _pochaLighting = default;
             DayNumber = day;
             _secondsIntoDay = secondsIntoDay;
             _skipNextTick = true;

@@ -95,13 +95,9 @@ namespace HamPocha.Gameplay
         public RecipeData Recipe(int menu) { return _sales.Catalog.Recipes[menu]; }
         public OutdoorRecipe Skewer(int menu) { return _sales.Catalog?.Outdoor?.GetRecipe(menu); }
 
-        public int SkewerForestNumber(OutdoorRecipe recipe) =>
-            (int)recipe.RequiredForest - (int)HamPocha.Core.SceneType.Forest01 + 1;
-
         public bool IsSkewerUnlocked(int menu)
         {
-            OutdoorRecipe recipe = Skewer(menu);
-            return recipe != null && _sales.Progress.Markets[1] && _sales.IsForestOwned(SkewerForestNumber(recipe) - 1);
+            return Growth.IsSkewerUnlocked(_sales.Catalog, _sales.Progress, menu);
         }
 
         public int FirstLegacyDisplay()
@@ -453,7 +449,8 @@ namespace HamPocha.Gameplay
             }
             if (!IsSkewerUnlocked(menu))
             {
-                message = "필요한 숲을 먼저 해금하세요";
+                message = Growth.SkewerRequirement(_sales.Catalog, _sales.Progress, menu);
+                if (message.Length == 0) message = "성장 메뉴에서 꼬치를 해금하세요";
                 return false;
             }
             if (State.SkewerDisplay[menu] >= OutdoorDisplayLimit)

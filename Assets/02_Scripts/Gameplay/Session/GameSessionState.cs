@@ -45,7 +45,9 @@ namespace HamPocha.Gameplay
             BusinessState == DailyBusinessState.Open && _worldClock.IsDaytime;
         internal bool IsClosing => CurrentActivity == PlayerActivity.Business && BusinessState == DailyBusinessState.LastOrder;
         internal bool HasPendingBusinessSummary => _station != null && _station.SummaryPending;
-        internal bool CanFinishCurrentBusiness => CanTakeNewOrders;
+        internal bool ClosedBusinessManually => BusinessState == DailyBusinessState.Closed && _station != null && _station.ClosedManually;
+        internal bool CanFinishCurrentBusiness => CurrentActivity == PlayerActivity.Business &&
+            (BusinessState == DailyBusinessState.Open || BusinessState == DailyBusinessState.LastOrder);
         internal bool CanOpenAtCurrentTime => _worldClock.Hour >= OpeningHour &&
             _openedBusinessDay != _worldClock.BusinessDayNumber;
         internal bool HasOpenedBusinessToday => _openedBusinessDay == _worldClock.BusinessDayNumber;
@@ -302,8 +304,7 @@ namespace HamPocha.Gameplay
 
         public bool TryStopBusiness(out string message)
         {
-            if (CurrentActivity != PlayerActivity.Business ||
-                (BusinessState != DailyBusinessState.Open && BusinessState != DailyBusinessState.LastOrder))
+            if (!CanFinishCurrentBusiness)
             {
                 message = "영업 중이 아닙니다.";
 
@@ -315,23 +316,17 @@ namespace HamPocha.Gameplay
                 message = "들고 있는 음식을 서빙하거나 지정 장소에서 폐기하세요";
                 return false;
             }
-            if (!CanFinishCurrentBusiness)
-            {
-                message = "새 주문 종료 · 남은 주문 처리 중";
-                return false;
-            }
-
-            FinishBusiness();
+            FinishBusiness(manual: true);
             message = "영업을 종료했습니다. 결산을 확인하세요";
             return true;
         }
 
-        private void FinishBusiness()
+        private void FinishBusiness(bool manual = false)
         {
             bool midnight = IsClosing || !_worldClock.IsDaytime;
             SetBusinessState(DailyBusinessState.Closed);
             SetActivity(PlayerActivity.FreeRoam);
-            if (_station != null) _station.CompleteBusinessIfNeeded(midnight);
+            if (_station != null) _station.CompleteBusinessIfNeeded(midnight, manual);
             CompletedBusinesses = 1;
             StateVersion++;
             Sfx.Play(SfxCue.BusinessClose);

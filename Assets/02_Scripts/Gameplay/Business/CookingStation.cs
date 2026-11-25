@@ -24,7 +24,8 @@ namespace HamPocha.Gameplay
         private BusinessSaveData _business = new BusinessSaveData();
         private GrowthSaveData _growth = new GrowthSaveData
         {
-            Tutorial = new TutorialSaveData { Enabled = true, FirstDayRound = 1 }
+            Tutorial = new TutorialSaveData { Enabled = true, FirstDayRound = 1 },
+            SkewerLevels = new int[OutdoorMenu.RecipeCount]
         };
         private readonly List<TableOrder> _orders = new List<TableOrder>();
         private readonly List<TableOrder> _occupiedTables = new List<TableOrder>();
@@ -85,6 +86,7 @@ namespace HamPocha.Gameplay
         public ContentCatalog Catalog { get { return _catalog; } }
         public GrowthSaveData Progress { get { return _growth; } }
         public bool SummaryPending { get { return _business.SummaryPending; } }
+        internal bool ClosedManually => _business.ClosedManually;
         public long SummaryGold { get { return _business.SummaryGold; } }
         public int ServedCount { get; private set; }
         public int WrongFoodCount { get; private set; }
@@ -340,7 +342,7 @@ namespace HamPocha.Gameplay
 
         internal bool HasWaitingCustomers()
         {
-            if (PochaKitchen.Current != null) return PochaKitchen.Current.WaitingCustomerCount > 0;
+            if (PochaKitchen.Current != null) return PochaKitchen.Current.HasGuestsAtClose;
             foreach (TableOrder order in _orders)
                 if (order.HasArrived && order.HasOrder && order.WaitRemaining > 0f) return true;
             return false;
@@ -654,7 +656,7 @@ namespace HamPocha.Gameplay
             }
         }
 
-        public void CompleteBusinessIfNeeded(bool midnight = false)
+        public void CompleteBusinessIfNeeded(bool midnight = false, bool manual = false)
         {
             if (_session.CurrentActivity == PlayerActivity.Business || _session.BusinessState != DailyBusinessState.Closed) return;
             if (_statisticsDay <= _business.LastSummaryDay) return;
@@ -697,6 +699,7 @@ namespace HamPocha.Gameplay
             _business.SummaryGold = _business.DailyGold;
             _business.SummaryXp = _business.DailyXp;
             _business.SummaryPending = true;
+            _business.ClosedManually = manual;
             SetMessage($"결산 완료 · 음식 보관{stored}/폐기{discarded} · 보상은1회 정산했습니다.");
             Debug.Log($"[Gameplay] event=business_summary result=completed sequence={_statisticsDay} stored={stored} discarded={discarded}", this);
         }
@@ -745,7 +748,8 @@ namespace HamPocha.Gameplay
             return data;
         }
 
-        public void Restore(CookingSaveData data, Dictionary<string, TableOrder> tables, bool upgradeContent = false)
+        public void Restore(CookingSaveData data, Dictionary<string, TableOrder> tables,
+            bool upgradeContent = false, bool preserveStarterShrimp = false)
         {
             if (PochaKitchen.Current != null) PochaKitchen.Current.Restore(data.Kitchen);
             _business = data.Business == null ? new BusinessSaveData() : JsonUtility.FromJson<BusinessSaveData>(JsonUtility.ToJson(data.Business));
@@ -763,6 +767,7 @@ namespace HamPocha.Gameplay
                 _growth.FoodLevels[i] = Growth.MaxFoodLevel;
             }
             Growth.UnlockForests(_catalog, _growth);
+            Growth.RestoreSkewerLevels(_catalog, _growth, preserveStarterShrimp);
             _hasSelection = data.HasSelection;
             _selectedRecipe = data.SelectedRecipe;
             _jobs.Clear();

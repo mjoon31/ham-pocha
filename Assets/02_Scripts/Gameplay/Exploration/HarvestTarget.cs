@@ -31,6 +31,7 @@ namespace HamPocha.Gameplay
         private int _dayYield;
         private int _harvestedAmount;
         private bool _noHarvestReward;
+        private double _nextMonsterHitTime;
 
         private void Awake()
         {
@@ -67,6 +68,7 @@ namespace HamPocha.Gameplay
             _isCollected = false;
             _harvestedAmount = 0;
             _noHarvestReward = false;
+            _nextMonsterHitTime = 0d;
 
             Rigidbody body = GetComponent<Rigidbody>();
 
@@ -169,6 +171,7 @@ namespace HamPocha.Gameplay
             _isCollected = data.IsCollected;
             _harvestedAmount = data.HarvestedAmount;
             _noHarvestReward = data.NoHarvestReward;
+            _nextMonsterHitTime = 0d;
             transform.position = data.Position;
             Rigidbody body = GetComponent<Rigidbody>();
             if (body != null) body.position = data.Position;
@@ -205,12 +208,21 @@ namespace HamPocha.Gameplay
                 return false;
             }
 
+            if (_isMonster && Time.timeAsDouble < _nextMonsterHitTime)
+            {
+                message = "아직 다시 공격할 수 없습니다.";
+                if (Debug.isDebugBuild)
+                    Debug.Log($"[Gameplay] event=hunt result=rejected reason=target_cooldown target={name}", this);
+                return false;
+            }
+
             int damage = _isMonster ? ForestCombatRules.PlayerAttackAtLevel(playerLevel) : 1;
             if (_hitPoints > damage)
             {
                 _hitPoints -= damage;
                 if (_isMonster)
                 {
+                    _nextMonsterHitTime = Time.timeAsDouble + ForestCombatRules.MonsterHitInterval(ForestCombatRules.Tier(transform));
                     if (TryGetComponent(out Monster monster)) monster.PlayHitMotion();
                     ForestFeedbackHud.ShowDamage(transform, damage, player: false);
                 }

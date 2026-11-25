@@ -66,14 +66,15 @@
     "780057ab-b215-455f-958f-771988f0f251",
     "a4d095f3-eb71-43a8-81f7-aaceecabd37c",
     "fe1abaa1-d662-46cf-b559-85fe6928019a",
-    "4e8f625c-9bcd-4e1f-b1e9-b262c22e84ad"
+    "4e8f625c-9bcd-4e1f-b1e9-b262c22e84ad",
+    "a0516e5f-0400-4704-a568-d4e1f761e5a2"
   ],
   "managed": {
     "Docs/Architecture/ADR_Template.md": "82f503880c5ed4c1bbc327b7008d5321f897957f",
     "Docs/Architecture/PoC_Template.md": "93b94cb0c0f4ab77bf4d1cc220f27fe871b98d4b",
     "Docs/Architecture/Technical_Baseline.md": "3a1d77f5b7f30167143a6c9a6aaa56dc63eb5cc1",
     "Docs/Issue_Records/Issue_Record_Template.md": "f1babc0e5081c06bfac79aafc6b34f333d938d5f",
-    "Docs/Issue_Records/README.md": "358b09e9add3732f694a3725928f0af4b7383dfe",
+    "Docs/Issue_Records/README.md": "c55a8d902682648a4cd52ee1b915860da13753a4",
     "Docs/Issue_Records/Records/IR-20261105-001_commit-workflow.md": "959aa42b476a89da14bf1673e9196d130acf03ab",
     "Docs/Issue_Records/Records/IR-20261105-002_mobile-concept-research.md": "472cda24f3744cdb0aae6654be1abade5d219348",
     "Docs/Issue_Records/Records/IR-20261106-001_project-rename.md": "9d9946b2d21919e38f34a2d995717888804c6848",
@@ -208,7 +209,7 @@
     "Assets/02_Scripts/Gameplay/Session/GameSessionState.cs": "711b58ce2c36d50b07693c166617e99e3097eb34",
     "Assets/02_Scripts/UI/Tutorial/TutorialUi.cs": "ad0a97864aa3b361de73032538597409894cfc9c",
     "Docs/Architecture/Tutorial_Flow.md": "9ee7faffc6654aa2705535d12d12d7c475b4cfb2",
-    "Docs/Issue_Records/Records/IR-20261117-004_business-rework.md": "ce4c0a2df64549fb6f3fc23e4a0e0642639e0a93",
+    "Docs/Issue_Records/Records/IR-20261117-004_business-rework.md": "e65d69730862c097a71e9b9ba453792235934090",
     "Docs/Test/Logs/2026-11-16_tutorial.md": "10448e40b466ac4323bb7a0a0fa20401df2f8db4",
     "Docs/Test/Logs/2026-11-20_daily-gameplay.md": "3a0b4c1f8bfd4a08359b96e914ba9aab38466e0e",
     "Docs/Test/Logs/2026-11-21_pocha-close-and-outdoor-queue.md": "a853ce230f68aa0266676bb1a3251f7bf424b898",

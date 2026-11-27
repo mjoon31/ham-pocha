@@ -260,7 +260,9 @@ namespace HamPocha.Gameplay
 
         public bool TryBuy(PurchaseType type, int index)
         {
-            if (!_clock.CanAdvance || (_session.CurrentActivity != PlayerActivity.FreeRoam && _session.CurrentActivity != PlayerActivity.Business))
+            // 성장 실습은 시뮬레이션만 멈추므로 구매 입력은 유지한다. 메뉴·결산 중에는 구매하지 않는다.
+            if (!_clock.CanAdvanceOutsideTutorial || _session.HasPendingBusinessSummary ||
+                (_session.CurrentActivity != PlayerActivity.FreeRoam && _session.CurrentActivity != PlayerActivity.Business))
             {
                 SetMessage("현재 상태에서는 구매할 수 없습니다.");
                 return false;

@@ -302,6 +302,48 @@ namespace HamPocha.Gameplay
             return moved;
         }
 
+        internal bool ProtectsTutorialCarrot
+        {
+            get
+            {
+                TutorialSaveData tutorial = _sales.Progress.Tutorial;
+                return tutorial != null && tutorial.Enabled && tutorial.Step < 21 && !tutorial.TakeawayServed;
+            }
+        }
+
+        internal bool CanDiscardHand => !ProtectsTutorialCarrot ||
+            !(State.Hand == Inventory.IngredientKey(IngredientType.Carrot) && IndoorIngredientCount(0) <= 1 ||
+              State.Hand == (int)RecipeId.CarrotSoup + 5 && FoodAvailable((int)RecipeId.CarrotSoup) <= 1 &&
+              IndoorIngredientCount(0) == 0);
+
+        internal bool TryDiscardHand()
+        {
+            if (State.Hand < 0) return false;
+            if (!CanDiscardHand)
+            {
+                Debug.Log("[Gameplay] event=kitchen_discard result=rejected reason=tutorial_last_carrot_or_soup");
+                return false;
+            }
+            State.Hand = -1;
+            return true;
+        }
+
+        internal int TutorialSoupCookSlot()
+        {
+            for (int i = 0; i < State.Inside.Length; i++)
+                if (State.Inside[i].Menu == (int)RecipeId.CarrotSoup && State.Inside[i].Started) return i;
+            return 0;
+        }
+
+        internal int TutorialStoredItem()
+        {
+            int soup = System.Array.IndexOf(State.Food, (int)RecipeId.CarrotSoup);
+            if (soup >= 0) return soup;
+            if (_inventory.GetStorageCount(IngredientType.Carrot) == 0)
+                return System.Array.IndexOf(State.Food, (int)IngredientType.Carrot + 7);
+            return -1;
+        }
+
         public bool TakeIngredient(int key)
         {
             if (State.Hand != -1 || key >= Inventory.IndoorItemKeyCount ||
@@ -556,6 +598,8 @@ namespace HamPocha.Gameplay
 
             int menu = SelectedIndoorMenu(cook);
             int ingredient = (int)Inventory.KeyIngredient(State.Hand);
+            if (ProtectsTutorialCarrot && ingredient == (int)IngredientType.Carrot &&
+                menu != (int)RecipeId.CarrotSoup && IndoorIngredientCount(ingredient) <= 1) return false;
             return menu >= 0 && (!_sales.IsClosing || HasAcceptedOrder(menu)) &&
                 cook.Ingredients[ingredient] < Need(menu, ingredient);
         }

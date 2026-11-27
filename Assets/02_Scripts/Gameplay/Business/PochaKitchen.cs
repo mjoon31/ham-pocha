@@ -41,14 +41,17 @@ namespace HamPocha.Gameplay
         private const float MarketEntryRange = .75f;
         private const float ViewAreaMargin = .75f;
         private const float CounterAisleEdge = -.75f;
-        private const float CounterCornerStart = 1.95f;
-        private const float CounterCornerEdge = -1.08f;
+        private const float OrderFacingHalfAngle = 22.5f;
+        private const double InsideTargetSwitchSeconds = .075d;
         private const float HouseYardBoundaryOffset = 3.15f;
         // 사진의 바닥 격자 기준으로 왼쪽 끝, 두 자리 경계, 오른쪽 끝을 지정한다.
         private static readonly float[] CounterSlotEdges = { -3.82f, -1.51f, .80f, 2.60f };
+        // 기존 기본 폭이 두 칸이므로 그 1/4이 좌우에 추가할 반 칸이다. 끝자리는 원래 경계를 유지한다.
+        private static readonly float CounterNeighborReach = (CounterSlotEdges[1] - CounterSlotEdges[0]) * .25f;
         private const float WheelSwitchPadding = .22f;
         private const float WheelSwitchMaxDegrees = 12f;
         private const float CookerHalfWidth = .80f;
+        private const float CookerNeighborReach = .77f;
         private const float CookerAisleReach = .82f;
         private const float CookerFrontReach = .42f;
         private const float StorageRange = .90f;
@@ -78,7 +81,10 @@ namespace HamPocha.Gameplay
         private BoxCollider _insideFloor;
         private float _insideMinX;
         private float _insideMinZ;
+        private float _counterContactMinZ;
         private float _insideMaxZ;
+        private Bounds _thirdCookerBounds;
+        private bool _hasThirdCookerBounds;
         private AudioListener _villageAudio;
         private MarketInteractable _market;
         private BoxCollider[] _marketFootprints = System.Array.Empty<BoxCollider>();
@@ -130,6 +136,7 @@ namespace HamPocha.Gameplay
             ? _hud?.TutorialSelectedSlot(_selected) : _hud?.TutorialWheelTarget(FirstBusinessWheelItem());
         internal bool HasSelectedTutorialWheelSlot => HasWheel && _wheel != Wheel.Display &&
             _selected >= 0 && _selected < _wheelSize && _wheelItems[_selected] >= 0;
+        internal bool IsFridgeWheel => _wheel == Wheel.Fridge;
         internal bool HasIndoorSlotWheel => _wheel is Wheel.Fridge or Wheel.Food or Wheel.Cook;
         internal Transform TutorialOutdoorCooker => _outdoor[0];
         internal Transform TutorialExit => _exitMat != null ? _exitMat.transform : null;
@@ -143,6 +150,8 @@ namespace HamPocha.Gameplay
         internal Camera FirstDayExteriorCamera => _villageCamera;
         internal RectTransform FirstDayRecipeCard => _hud?.FirstDayRecipeCard;
         internal RectTransform FirstDayOrderBadge(int slot) => _hud?.FirstDayOrderBadge(slot);
+        internal Transform FirstDayIngredientSource => Stock.TutorialStoredItem() >= 0 ? _food : _fridge;
+        internal int FirstDayPracticeCookSlot => Stock.TutorialSoupCookSlot();
         internal Transform FirstDayGuest(int slot) => slot >= 0 ? _visitors[slot] : null;
         internal bool AtFirstDayEntrance()
         {
@@ -198,6 +207,8 @@ namespace HamPocha.Gameplay
         private int _nearSlot;
         private Target _near;
         private bool _ambiguous;
+        private (Target type, int slot) _pendingInsideTarget;
+        private double _pendingInsideTargetSince;
         private readonly List<PlayerWorldInteraction.InteractionCandidate> _targets =
             new List<PlayerWorldInteraction.InteractionCandidate>(12);
         private readonly List<(Target type, int slot)> _targetUses = new List<(Target, int)>(12);
@@ -248,6 +259,7 @@ namespace HamPocha.Gameplay
 
         private void OnDisable()
         {
+            ClearTarget();
             RenderPipelineManager.beginCameraRendering -= BeginGuestRendering;
             RenderPipelineManager.endCameraRendering -= EndGuestRendering;
             RestoreGuestRenderPositions();
@@ -282,6 +294,7 @@ namespace HamPocha.Gameplay
 
         public void Restore(KitchenSaveData data)
         {
+            ClearTarget();
             Stock.Restore(data);
             _restoreView = Stock.State.InteriorView;
             RestoreInsidePosition();
@@ -303,6 +316,20 @@ namespace HamPocha.Gameplay
             if (HasWheel && _clock.IsApplicationActive && !CanShow && !IsTutorialMenuPaused) CloseWheel();
             if (HasWheel && !IsTutorialMenuPaused)
             {
+                if (_wheel == Wheel.Fridge)
+                {
+                    for (int i = 0; i < HamPocha.Gameplay.Inventory.IngredientCount; i++)
+                    {
+                        int count = Inventory.GetStorageCount((IngredientType)i);
+                        int item = count > 0 ? HamPocha.Gameplay.Inventory.IngredientKey((IngredientType)i) : -1;
+                        if (_wheelItems[i] != item)
+                        {
+                            _wheelItems[i] = item;
+                            _hud.UpdateWheelItem(i, item);
+                        }
+                        _hud.UpdateFridgeCount(i, count);
+                    }
+                }
                 if (_wheel == Wheel.Display)
                 {
                     for (int i = 0; i < _wheelSize; i++)
@@ -432,7 +459,11 @@ namespace HamPocha.Gameplay
             float radius = capsule.radius * Mathf.Max(capsule.transform.lossyScale.x, capsule.transform.lossyScale.z);
             float clearance = radius + contactOffset;
             _insideMinX = GetInteriorFace(westWall, Vector3.right).x + clearance;
-            _insideMinZ = GetInteriorFace(boundary, Vector3.forward).z + clearance;
+            float counterFaceZ = GetInteriorFace(boundary, Vector3.forward).z;
+            _insideMinZ = counterFaceZ + clearance;
+            // 벽을 따라 움직일 때 캡슐의 접촉 보정으로 생기는 작은 위치 차이를 허용한다.
+            _counterContactMinZ = Mathf.Max(counterFaceZ,
+                counterFaceZ + radius - boundary.contactOffset - capsule.contactOffset);
             _insideMaxZ = GetInteriorFace(northWall, Vector3.back).z - clearance;
             for (int i = 0; i < _cook.Length; i++)
             {
@@ -449,6 +480,7 @@ namespace HamPocha.Gameplay
                 face.x -= clearance + .04f;
                 _cookApproaches[i] = root.TransformPoint(face);
             }
+            CacheThirdCookerBounds();
             RestoreInsidePosition();
             for (int i = 0; i < _visitors.Length; i++)
             {
@@ -464,7 +496,7 @@ namespace HamPocha.Gameplay
             bool shouldEnter = _enterWhenReady;
             FinishEntryWait();
             if (shouldEnter && CanShow && CanSwitchView) SetView(true, playSound: true);
-            Debug.Log("[Scene] event=pocha_interior result=ready", this);
+            Debug.Log($"[Scene] event=pocha_interior result=ready counter_contact_min_z={_counterContactMinZ:F3}", this);
         }
 
         private Vector3 GetInteriorFace(BoxCollider boundary, Vector3 normal)
@@ -607,6 +639,7 @@ namespace HamPocha.Gameplay
         private void SetView(bool inside, bool playSound = false)
         {
             bool changed = IsInside != inside;
+            if (changed) ClearTarget();
             using (ViewMarker.Auto())
             {
                 IsInside = inside;
@@ -680,7 +713,11 @@ namespace HamPocha.Gameplay
         public void Discard()
         {
             if (!CanShow || HasWheel || Hand < 0) return;
-            Stock.State.Hand = -1;
+            if (!Stock.TryDiscardHand())
+            {
+                NotifyLocked("첫 조리 실습에 필요한 마지막 당근이나 수프는 남겨주세요", "tutorial_last_carrot", missingIngredients: true);
+                return;
+            }
             Sfx.Play(SfxCue.MenuClose);
             PlayInteractionMotion();
             LogAction("discard", true);
@@ -721,12 +758,22 @@ namespace HamPocha.Gameplay
             if (HasWheel) { ConfirmWheel(); return true; }
             FindTarget();
             if (TutorialUi.Current?.UsesFirstDayRounds == true &&
-                !TutorialUi.Current.AllowsFirstDayKitchenInteraction(GetOutlineTarget())) return true;
+                !TutorialUi.Current.AllowsFirstDayKitchenInteraction(GetSelectedTarget())) return true;
             if (_ambiguous)
             {
                 LogAction("ambiguous_targets");
                 return true;
             }
+            if (IsInside && _near == Target.Order)
+            {
+                float angle = GetFacingAngle(_guestPoints[_nearSlot].position,
+                    InsideMotor.FacingPosition, InsideMotor.FacingDirection);
+                Vector3 model = _insideRoom.InverseTransformPoint(InsideMotor.FacingPosition);
+                Debug.Log($"[Input] event=pocha_order_target result=selected slot={_nearSlot + 1} angle={angle:F1} half_angle={OrderFacingHalfAngle:F1} model_x={model.x:F3} model_z={model.z:F3}", this);
+            }
+            else if (IsInside && _near == Target.None)
+                LogAction("no_target_in_range_or_facing");
+
             switch (_near)
             {
                 case Target.Market:
@@ -1062,6 +1109,20 @@ namespace HamPocha.Gameplay
                 int index = key - SkewerKeyStart;
                 OutdoorRecipe recipe = Stock.Skewer(index);
                 if (recipe == null) return "메뉴 준비 중";
+                if (_wheel == Wheel.Fridge)
+                {
+                    for (int i = 0; i < HamPocha.Gameplay.Inventory.IngredientCount; i++)
+                    {
+                        int count = Inventory.GetStorageCount((IngredientType)i);
+                        int item = count > 0 ? HamPocha.Gameplay.Inventory.IngredientKey((IngredientType)i) : -1;
+                        if (_wheelItems[i] != item)
+                        {
+                            _wheelItems[i] = item;
+                            _hud.UpdateWheelItem(i, item);
+                        }
+                        _hud.UpdateFridgeCount(i, count);
+                    }
+                }
                 if (_wheel == Wheel.Display) return $"{recipe.DisplayName}\n진열 {Stock.State.SkewerDisplay[index]}개";
                 return recipe.DisplayName;
             }
@@ -1093,15 +1154,16 @@ namespace HamPocha.Gameplay
 
         private void FindTarget()
         {
-            _near = Target.None;
             _targets.Clear();
             _targetUses.Clear();
             Vector3 pos = IsInside ? InsideBody.position : _loader.PlayerBody.position;
+            Vector3 facing = IsInside ? InsideMotor.FacingDirection : _interaction.FacingDirection;
+            Vector3 facingPosition = IsInside ? InsideMotor.FacingPosition : pos;
 
             if (IsInside && IsOnExitMat(pos))
             {
+                ClearTarget();
                 _near = Target.Exit;
-                _ambiguous = false;
                 return;
             }
 
@@ -1111,12 +1173,8 @@ namespace HamPocha.Gameplay
                 Consider(_food, pos, Target.Food, 0, StorageRange);
                 for (int i = 0; i < 3; i++)
                 {
-                    ConsiderCooker(i, pos);
-                    KitchenOrder order = Stock.State.Orders[i];
-                    bool accepting = order.Phase == 2;
-                    bool serving = order.Phase == 3 && HamPocha.Gameplay.Inventory.IsFoodKey(Hand);
-                    if (IsOpen && order.Remaining > 0 && (accepting || serving))
-                        ConsiderOrder(i, pos);
+                    if (CanInteractWithCooker(i)) ConsiderCooker(i, pos, facingPosition, facing);
+                    if (CanInteractWithOrder(i)) ConsiderOrder(i, pos, facingPosition, facing);
                 }
             }
             else
@@ -1126,15 +1184,106 @@ namespace HamPocha.Gameplay
                 if (MarketPoint != null && IsNearMarketEntrance(pos, out float marketDistanceSquared))
                     AddTarget(MarketPoint, Target.Market, 0, Mathf.Sqrt(marketDistanceSquared));
             }
-            Vector3 facing = IsInside ? InsideMotor.FacingDirection : _interaction.FacingDirection;
-            int chosen = _interaction.ChooseInteraction(_targets, pos, facing, out _ambiguous);
+            int chosen = IsInside ? ChooseFacingOrder(facingPosition, facing) : -1;
+            if (chosen >= 0) _ambiguous = false;
+            else chosen = _interaction.ChooseInteraction(_targets, pos, facing, out _ambiguous);
+            if (IsInside) chosen = StabilizeInsideTarget(chosen);
             if (chosen >= 0) (_near, _nearSlot) = _targetUses[chosen];
+            else _near = Target.None;
+        }
+
+        private int StabilizeInsideTarget(int chosen)
+        {
+            int current = _targetUses.IndexOf((_near, _nearSlot));
+            if (current < 0 || current == chosen)
+            {
+                _pendingInsideTarget = default;
+                return chosen;
+            }
+
+            // 거리나 각도 경합이 잠시 모호해져도 현재 대상이 유효하면 계속 사용할 수 있다.
+            if (chosen < 0)
+            {
+                _pendingInsideTarget = default;
+                _ambiguous = false;
+                return current;
+            }
+
+            // 프레임 수가 아닌 실제 시간으로 연속해서 우선인 대상을 확인한다.
+            double now = Time.unscaledTimeAsDouble;
+            var next = _targetUses[chosen];
+            if (_pendingInsideTarget != next)
+            {
+                _pendingInsideTarget = next;
+                _pendingInsideTargetSince = now;
+            }
+            if (now - _pendingInsideTargetSince < InsideTargetSwitchSeconds) return current;
+
+            _pendingInsideTarget = default;
+            return chosen;
+        }
+
+        private void ClearTarget()
+        {
+            _near = Target.None;
+            _ambiguous = false;
+            _pendingInsideTarget = default;
+        }
+
+        private int ChooseFacingOrder(Vector3 player, Vector3 facing)
+        {
+            int chosen = -1;
+            float bestAngle = float.PositiveInfinity;
+            for (int i = 0; i < _targetUses.Count; i++)
+            {
+                if (_targetUses[i].type != Target.Order) continue;
+
+                float angle = GetFacingAngle(_targets[i].Position, player, facing);
+                if (angle > OrderFacingHalfAngle) continue;
+                if (angle < bestAngle || chosen >= 0 && Mathf.Approximately(angle, bestAngle) &&
+                    _targets[i].Distance < _targets[chosen].Distance)
+                {
+                    bestAngle = angle;
+                    chosen = i;
+                }
+            }
+
+            if (chosen < 0) return -1;
+
+            // 설비를 더 정면으로 보는 경우 손님 후보가 조리대·보관대 선택을 빼앗지 않는다.
+            for (int i = 0; i < _targetUses.Count; i++)
+            {
+                if (_targetUses[i].type == Target.Order) continue;
+
+                float angle = GetFacingAngle(_targets[i].Position, player, facing);
+                if (angle < bestAngle)
+                {
+                    bestAngle = angle;
+                    chosen = i;
+                }
+            }
+
+            return chosen;
+        }
+
+        private static float GetFacingAngle(Vector3 target, Vector3 player, Vector3 facing)
+        {
+            Vector3 direction = target - player;
+            direction.y = 0f;
+            facing.y = 0f;
+
+            return Vector3.Angle(facing, direction);
         }
 
         internal Transform GetOutlineTarget()
         {
             if (!CanShow || HasWheel) return null;
             FindTarget();
+            return GetSelectedTarget();
+        }
+
+        private Transform GetSelectedTarget()
+        {
             switch (_near)
             {
                 case Target.Market: return _market.transform;
@@ -1142,9 +1291,7 @@ namespace HamPocha.Gameplay
                 case Target.Fridge: return _fridge;
                 case Target.Food: return _food;
                 case Target.Cook:
-                    KitchenCook cook = Stock.State.Inside[_nearSlot];
-                    if (cook.Ready) return Hand == -1 ? _cook[_nearSlot] : null;
-                    return Stock.CanInsert(_nearSlot) || Stock.CanChangeMenu(_nearSlot) ? _cook[_nearSlot] : null;
+                    return CanInteractWithCooker(_nearSlot) ? _cook[_nearSlot] : null;
                 case Target.Outdoor: return _outdoor[_nearSlot];
                 case Target.Display: return _counter;
                 case Target.Order: return _visitors[_nearSlot];
@@ -1162,48 +1309,179 @@ namespace HamPocha.Gameplay
             return Mathf.Abs(offset.x) <= halfSize.x && Mathf.Abs(offset.z) <= halfSize.z;
         }
 
-        private void ConsiderOrder(int slot, Vector3 player)
+        private bool CanInteractWithOrder(int slot)
+        {
+            KitchenOrder order = Stock.State.Orders[slot];
+            Transform counterPoint = _order[slot];
+            if (!IsOpen || counterPoint == null || !counterPoint.gameObject.activeInHierarchy || order.Remaining <= 0f)
+                return false;
+
+            return order.Phase == 2 || order.Phase == 3 && HamPocha.Gameplay.Inventory.IsFoodKey(Hand);
+        }
+
+        private void ConsiderOrder(int slot, Vector3 player, Vector3 facingPosition, Vector3 facing)
         {
             Transform counterPoint = _order[slot];
             if (counterPoint == null || !counterPoint.gameObject.activeInHierarchy) return;
 
-            Vector3 floor = _insideRoom.InverseTransformPoint(player);
-            float aisleEdge = slot == 2 && floor.x >= CounterCornerStart ? CounterCornerEdge : CounterAisleEdge;
-            if (floor.x < CounterSlotEdges[slot] || floor.x > CounterSlotEdges[slot + 1] ||
-                floor.z < _insideMinZ - Physics.defaultContactOffset || floor.z > aisleEdge) return;
+            // 후보 구역과 부채꼴은 모두 화면에 보이는 플레이어 모델 위치를 원점으로 판정한다.
+            Vector3 floor = _insideRoom.InverseTransformPoint(facingPosition);
+            float aisleEdge = CounterAisleEdge;
+            if (slot == 2 && _cook[2] != null)
+                aisleEdge = Mathf.Max(aisleEdge, _insideRoom.InverseTransformPoint(_cook[2].position).z);
+            float leftEdge = CounterSlotEdges[slot];
+            float rightEdge = CounterSlotEdges[slot + 1];
+            float bodyZ = _insideRoom.InverseTransformPoint(player).z;
+            if (bodyZ < _counterContactMinZ || floor.z > aisleEdge) return;
 
             // 가판대 건너의 대응 손님을 향하도록 실제 손님 위치를 조준점으로 쓴다.
             Vector3 aim = _guestPoints[slot].position;
+            bool inBaseRange = floor.x >= leftEdge && floor.x <= rightEdge;
+            if (!inBaseRange)
+            {
+                // 기본 구역은 기존 선택에 남기고, 좌우로 넓힌 구역에서만 시선을 필수로 한다.
+                if (slot > 0) leftEdge -= CounterNeighborReach;
+                if (slot < 2) rightEdge += CounterNeighborReach;
+                if (floor.x < leftEdge || floor.x > rightEdge) return;
+                if (GetFacingAngle(aim, facingPosition, facing) > OrderFacingHalfAngle) return;
+            }
+
             Vector3 delta = counterPoint.position - player;
             delta.y = 0f;
             AddTarget(counterPoint, Target.Order, slot, delta.magnitude, aim);
         }
 
-        private void ConsiderCooker(int slot, Vector3 player)
+        private bool CanInteractWithCooker(int slot)
+        {
+            Transform cooker = _cook[slot];
+            if (cooker == null || !cooker.gameObject.activeInHierarchy) return false;
+
+            KitchenCook cook = Stock.State.Inside[slot];
+            if (cook.Ready) return Hand == -1;
+            if (cook.Started) return false;
+
+            return Stock.CanInsert(slot) || Stock.CanChangeMenu(slot);
+        }
+
+        private void GetCookerSideRange(int slot, float halfWidth, out float minAlong, out float maxAlong)
+        {
+            minAlong = -halfWidth;
+            maxAlong = halfWidth;
+            // 번호는 줄 안쪽부터 입구 쪽 순서다. 3번의 손님 쪽 경계는 확장하지 않는다.
+            if (slot > 0 && !CanInteractWithCooker(slot - 1)) maxAlong += CookerNeighborReach;
+            if (slot < 2 && !CanInteractWithCooker(slot + 1)) minAlong -= CookerNeighborReach;
+        }
+
+        private void CacheThirdCookerBounds()
+        {
+            _hasThirdCookerBounds = false;
+            foreach (MeshFilter part in _cook[2].GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (part.sharedMesh == null || !part.TryGetComponent(out Renderer renderer) || !renderer.enabled) continue;
+
+                AddThirdCookerBounds(part.sharedMesh.bounds, part.transform);
+            }
+            if (_hasThirdCookerBounds)
+            {
+                Debug.Log($"[Scene] event=pocha_cooker_facing result=ready slot=3 min_x={_thirdCookerBounds.min.x:F3} max_x={_thirdCookerBounds.max.x:F3} min_z={_thirdCookerBounds.min.z:F3} max_z={_thirdCookerBounds.max.z:F3}", this);
+                return;
+            }
+
+            BoxCollider footprint = _cook[2].GetComponent<BoxCollider>();
+            if (footprint != null) AddThirdCookerBounds(new Bounds(footprint.center, footprint.size), footprint.transform);
+            Debug.LogWarning("[Scene] event=pocha_cooker_facing result=fallback reason=missing_model_mesh slot=3", this);
+        }
+
+        private void AddThirdCookerBounds(Bounds bounds, Transform frame)
+        {
+            for (int x = -1; x <= 1; x += 2)
+            {
+                for (int y = -1; y <= 1; y += 2)
+                {
+                    for (int z = -1; z <= 1; z += 2)
+                    {
+                        Vector3 corner = bounds.center + Vector3.Scale(bounds.extents, new Vector3(x, y, z));
+                        corner = _insideRoom.InverseTransformPoint(frame.TransformPoint(corner));
+                        if (_hasThirdCookerBounds) _thirdCookerBounds.Encapsulate(corner);
+                        else _thirdCookerBounds = new Bounds(corner, Vector3.zero);
+                        _hasThirdCookerBounds = true;
+                    }
+                }
+            }
+        }
+
+        private bool IsFacingThirdCooker(Vector3 player, Vector3 facing)
+        {
+            if (!_hasThirdCookerBounds) return false;
+
+            Vector3 origin = _insideRoom.InverseTransformPoint(player);
+            Vector3 direction = _insideRoom.InverseTransformDirection(facing);
+            origin.y = _thirdCookerBounds.center.y;
+            direction.y = 0f;
+            if (direction.sqrMagnitude < .0001f) return false;
+
+            return _thirdCookerBounds.IntersectRay(new Ray(origin, direction));
+        }
+
+        private void ConsiderCooker(int slot, Vector3 player, Vector3 facingPosition, Vector3 facing)
         {
             Transform cooker = _cook[slot];
             if (cooker == null || !cooker.gameObject.activeInHierarchy) return;
+            if (slot == 2 && !IsFacingThirdCooker(facingPosition, facing)) return;
 
             Vector3 approach = _cookApproaches[slot];
             Vector3 delta = player - approach;
             delta.y = 0f;
             float alongCookers = Vector3.Dot(delta, _insideRoom.forward);
             float towardCooker = Vector3.Dot(delta, _insideRoom.right);
-            if (Mathf.Abs(alongCookers) <= CookerHalfWidth &&
-                towardCooker >= -CookerAisleReach && towardCooker <= CookerFrontReach)
-                AddTarget(cooker, Target.Cook, slot, delta.magnitude, approach);
+            float halfWidth = CookerHalfWidth;
+            if (slot == 2)
+                halfWidth = Mathf.Max(halfWidth, Mathf.Abs(_insideMinZ - _insideRoom.InverseTransformPoint(cooker.position).z));
+            GetCookerSideRange(slot, halfWidth, out float minAlong, out float maxAlong);
+            bool atFront = alongCookers >= minAlong && alongCookers <= maxAlong &&
+                towardCooker >= -CookerAisleReach && towardCooker <= CookerFrontReach;
+            bool extended = Mathf.Abs(alongCookers) > halfWidth;
+            if (extended && slot < 2 &&
+                (GetTargetDistanceSquared(_food, player) <= StorageRange * StorageRange ||
+                 GetTargetDistanceSquared(_fridge, player) <= StorageRange * StorageRange))
+                atFront = false;
+
+            if (atFront)
+            {
+                AddTarget(cooker, Target.Cook, slot, delta.magnitude, cooker.position);
+                return;
+            }
+            if (slot != 2) return;
+
+            // 3번 아래 통로에서는 앞쪽 접근점을 지나 실제 조리대 남쪽 면에도 다가갈 수 있다.
+            BoxCollider footprint = cooker.GetComponent<BoxCollider>();
+            if (footprint == null || !footprint.enabled) return;
+
+            Vector3 floor = _insideRoom.InverseTransformPoint(player);
+            float southEdge = GetInteriorFace(footprint, Vector3.back).z;
+            if (floor.z >= _counterContactMinZ && floor.z <= southEdge)
+                Consider(cooker, player, Target.Cook, slot, StorageRange);
         }
 
         private void Consider(Transform target, Vector3 player, Target type, int slot, float range = Range)
         {
             if (target == null || !target.gameObject.activeInHierarchy) return;
+
+            float distanceSquared = GetTargetDistanceSquared(target, player);
+            if (distanceSquared <= range * range) AddTarget(target, type, slot, Mathf.Sqrt(distanceSquared));
+        }
+
+        private float GetTargetDistanceSquared(Transform target, Vector3 player)
+        {
+            if (target == null || !target.gameObject.activeInHierarchy) return float.PositiveInfinity;
+
             Collider collider = target.GetComponent<Collider>();
             Vector3 reach = target.position;
             if (collider != null && collider.enabled)
                 reach = collider.ClosestPoint(new Vector3(player.x, collider.bounds.center.y, player.z));
             Vector3 delta = player - reach;
             delta.y = 0;
-            if (delta.sqrMagnitude <= range * range) AddTarget(target, type, slot, delta.magnitude);
+            return delta.sqrMagnitude;
         }
 
         private void AddTarget(Transform target, Target type, int slot, float distance, Vector3? position = null)
@@ -1215,6 +1493,7 @@ namespace HamPocha.Gameplay
 
         private void OpenWheel(Wheel wheel, int slot)
         {
+            ClearTarget();
             _wheel = wheel;
             _wheelCook = slot;
             _selected = -1;

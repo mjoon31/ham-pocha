@@ -39,9 +39,7 @@ Assets/
   06_Materials/
   07_Images/
   08_Audio/
-  09_UI/
-  10_Data/
-  11_Localization/    실제 다국어 지원 채택 시
+  09_Data/            게임 데이터·UI 스킨·튜토리얼 정의
 ```
 
 - 모듈·asmdef 도입은 ADR에 책임과 의존 방향을 정한 뒤 필요한 범위에만 적용한다. 빈 아키텍처부터 만들지 않는다.
@@ -69,7 +67,7 @@ Assets/
 | `06_Materials/World`, `Business`, `Exploration`, `Interaction` | 월드 지면·계절·마당, 포차·주문, 숲 채집, 상호작용 강조 재질 |
 | `06_Materials/Physics` | 플레이어와 배치 도구가 사용하는 공용 물리 재질 |
 | `07_Images/UI`, `07_Images/World/Ground`, `07_Images/Props/HomeCustomization` | HUD·시작·안내 이미지, 월드 지면 패턴, 커스터마이징 소품 아이콘 |
-| `10_Data/UI`, `10_Data/Tutorial` | UI 스킨·미니맵 아트 정의, 튜토리얼 가구 보상 데이터 |
+| `09_Data/UI`, `09_Data/Tutorial` | UI 스킨·미니맵 아트 정의, 튜토리얼 가구 보상 데이터 |
 
 프리팹의 시각 메시·재질이 들어 있는 `Meshes` 폴더는 해당 프리팹과 함께 관리한다. `Resources`에 둔 항목은 이동할 때 `Resources/` 이후 상대 경로를 보존한다. `UI/SceneTransitionFade.cs`, `Core/MainSceneLoader.cs`, `Core/SceneRegion.cs`의 승인된 소스 경로는 [씬 연결](../Architecture/Scene_Flow.md)에서 확인한다.
 

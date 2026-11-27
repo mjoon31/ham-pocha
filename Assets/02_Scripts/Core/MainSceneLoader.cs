@@ -75,7 +75,15 @@ namespace HamPocha.Core
                 yield break;
             }
 
+            _sceneLoader.SetStartupLoading(true);
+            VillageSceneController hud = FindObjectOfType<VillageSceneController>();
+            PauseUi menu = FindObjectOfType<PauseUi>();
+            CookingUi cooking = FindObjectOfType<CookingUi>();
+            while ((hud != null && !hud.IsReady) || (menu != null && !menu.IsReady) ||
+                (cooking != null && !cooking.IsReady)) yield return null;
+            yield return null;
             if (GetComponent<HamPocha.UI.TutorialUi>() == null) gameObject.AddComponent<HamPocha.UI.TutorialUi>();
+            yield return null;
             if (GetComponent<HamPocha.Gameplay.PochaKitchen>() == null)
                 gameObject.AddComponent<HamPocha.Gameplay.PochaKitchen>().Initialize(_sceneLoader);
             yield return null;

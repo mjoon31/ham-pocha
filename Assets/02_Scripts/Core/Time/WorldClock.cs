@@ -12,7 +12,7 @@ namespace HamPocha.Core
         public const int SunsetHour = 17;
         public const int EveningHour = 21;
         private const int FullSunsetHour = 19;
-        private const float TutorialOpeningDeadline = 18f * 3600f;
+        private const float TutorialOpeningDeadline = SunsetHour * 3600f;
         private const float TutorialSleepDeadline = 5f * 3600f;
         private const float SecondsPerDay = 86400f;
         private const float SecondsPerHour = 3600f;
@@ -40,6 +40,8 @@ namespace HamPocha.Core
         private bool _tutorialPaused;
         private bool _tutorialOpeningHold;
         private bool _tutorialSleepHold;
+        private int _tutorialDepartureHour;
+        private float _tutorialDepartureDeadline;
         private bool _skipNextTick = true;
         // 임시 확인 모드는 조명과 그림자만 바꾸고 실제 시간과 저장에는 쓰지 않는다.
         private float? _lightingPreviewProgress;
@@ -64,6 +66,8 @@ namespace HamPocha.Core
         internal bool CanAdvanceOutsideTutorial => !IsPaused && IsApplicationActive;
         internal bool AtTutorialOpeningDeadline => _tutorialOpeningHold && DayNumber == 1 &&
             _secondsIntoDay >= TutorialOpeningDeadline;
+        internal bool AtTutorialDepartureDeadline => _tutorialDepartureHour > 0 && DayNumber == 1 &&
+            _secondsIntoDay >= _tutorialDepartureDeadline;
 
         public int Hour
         {
@@ -217,6 +221,8 @@ namespace HamPocha.Core
             int previousBusinessDay = BusinessDayNumber;
             float previousTime = _secondsIntoDay;
             _secondsIntoDay += worldSeconds;
+            if (_tutorialDepartureHour > 0 && DayNumber == 1)
+                _secondsIntoDay = Mathf.Min(_secondsIntoDay, _tutorialDepartureDeadline);
             if (_tutorialOpeningHold && DayNumber == 1)
                 _secondsIntoDay = Mathf.Min(_secondsIntoDay, TutorialOpeningDeadline);
 
@@ -307,6 +313,15 @@ namespace HamPocha.Core
             }
             if (Debug.isDebugBuild)
                 Debug.Log($"[Gameplay] frame={Time.frameCount} event=tutorial_pause result=changed paused={paused}", this);
+        }
+
+        internal void SetTutorialDepartureHold(int hour)
+        {
+            if (_tutorialDepartureHour == hour) return;
+            _tutorialDepartureHour = hour;
+            // 기존 저장이 지정 시각을 지났어도 시간을 과거로 돌리지 않는다.
+            _tutorialDepartureDeadline = Mathf.Max(_secondsIntoDay, hour * SecondsPerHour);
+            Debug.Log($"[Gameplay] event=tutorial_departure_clock result=changed hour={hour} deadline={_tutorialDepartureDeadline:F0}", this);
         }
 
         internal void SetTutorialOpeningHold(bool hold)

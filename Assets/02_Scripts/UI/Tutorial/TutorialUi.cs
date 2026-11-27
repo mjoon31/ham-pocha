@@ -37,14 +37,16 @@ namespace HamPocha.UI
         private const float VillageOverviewScale = 2.7f;
         private const float VillagePanBow = 3.2f;
         private const int ForestEntryNotice = 1;
-        private enum InterruptNotice { None, ForestTravel, ForestExit, MarketTravel, WrongDelivery, SleepTooEarly, FirstDayClosing, SleepReturn }
+        private enum InterruptNotice { None, ForestTravel, ForestExit, MarketTravel, WrongDelivery, SleepTooEarly, FirstDayClosing, SleepReturn, VillageDeparture, ForestDeparture, NoonOpening }
         private static readonly string FirstForestName = ForestEntryUi.ForestEntryTitle(SceneType.Forest01);
         private static readonly string ForestEntryCopy = $"{FirstForestName}에서 당근과 빵을 구할 수 있어요. 확인을 누른 뒤 입장할 수 있어요.";
         [SerializeField, Min(0.5f)] private float _panSeconds = 3f;
-        [SerializeField, Min(1f)] private float _forestOverviewScale = 1.5f;
         [SerializeField, Min(1f)] private float _marketOverviewScale = 1.6f;
         private SceneLoadManager _loader;
         private WorldClock _clock;
+        private PlayerMotor _playerMotor;
+        private bool _waitingForNavigationPanels;
+        internal bool WaitingForNavigationPanels => _waitingForNavigationPanels;
         private GameSessionState _session;
         private CookingStation _station;
         private Inventory _inventory;
@@ -158,7 +160,7 @@ namespace HamPocha.UI
         private bool IsReturningHomeToSleep => !State.CompletedTutorialSleep &&
             (FirstDayRound is 99 or 100 ||
                 FirstDayRound == 98 && !_station.SummaryPending && !_clock.IsDaytime ||
-                FirstDayRound == 0 && State.Step == 20 && State.ClosingLesson == 6);
+                FirstDayRound == 0 && State.Step == 20 && State.ClosingLesson == 6 && !_clock.IsDaytime);
 
         internal bool IsIntroducingPocha => _root != null && State != null && (State.Step == 4 || State.Step == 5);
         internal bool IsPracticingHomePlacement => _root != null && State != null && State.Step == 0 &&
@@ -223,6 +225,7 @@ namespace HamPocha.UI
             _villageHud = FindObjectOfType<VillageSceneController>();
             _camera = Camera.main;
             _interaction = FindObjectOfType<PlayerWorldInteraction>();
+            _playerMotor = _interaction != null ? _interaction.GetComponent<PlayerMotor>() : null;
             if (_loader == null || _clock == null || _session == null || _station == null || _inventory == null ||
                 _cookingUi == null || _contentUi == null || _camera == null || _input == null || _entryUi == null || _interaction == null)
             {
@@ -279,7 +282,8 @@ namespace HamPocha.UI
         private const string FirstSale = "첫 실내 서빙을 마쳤어요! 주문한 음식을 건네면 골드와 판매 경험치를 받아요.";
         private const string GrowthMenu = "성장·해금 메뉴를 열어 당근 수프를 강화해보세요.";
         private const string UpgradeTip = "당근 수프의 첫 강화(레벨 1 → 2)는 무료예요.";
-        private const string OutdoorTip = "야시장은 햄스터 레벨 6과 5,000골드로 해금할 수 있어요. 야외 시점으로 전환해 둘러볼게요.";
+        private string MarketUnlockTip => $"햄스터 Lv.{_station.Catalog.MarketLevels[1]}과 {_station.Catalog.AreaCost:N0}골드를 모으면 야시장을 열 수 있어요";
+        private string OutdoorTip => MarketUnlockTip + ". 야외 시점으로 전환해 둘러볼게요.";
         private const string UnlockTip = "세 번째 음식은 당근 수프와 바삭 토스트가 각각 레벨 5여야 해요. 그다음부터는 직전 음식 레벨 10이 필요해요. 해금 비용은 성장 메뉴에서 확인하세요. 재료 숲도 함께 열려요.";
         private const string GrowthScrollTip = "성장 목록을 스크롤하면 야시장 항목을 볼 수 있어요.";
         private const string HomeAtMidnightTip = "자정이 됐어요 / " + HomeTravelCopy;
@@ -465,6 +469,7 @@ namespace HamPocha.UI
             _interruptNotice = InterruptNotice.None;
             _skipButton.gameObject.SetActive(false);
             MoveTo(21);
+            _clock.SetTutorialDepartureHold(0);
             _clock.SetTutorialOpeningHold(false);
             _clock.SetTutorialSleepHold(false);
             _clock.SetTutorialPaused(false);
@@ -513,6 +518,7 @@ namespace HamPocha.UI
             _clock?.SetTutorialOpeningHold(State != null && State.Step < 21 &&
                 _session != null && _session.BusinessSequence == 0);
             _clock?.SetTutorialSleepHold(NeedsTutorialSleepHold());
+            _clock?.SetTutorialDepartureHold(TutorialDepartureHour());
             if (State == null || State.Step == 21)
             {
                 _root.SetActive(false);
@@ -522,7 +528,7 @@ namespace HamPocha.UI
                 return;
             }
             bool available = !_loader.IsStartupLoading && !_loader.IsTransitioning && !_loader.IsSessionBlocked &&
-                !_loader.IsMenuPaused;
+                !_loader.IsMenuPaused && (_playerMotor == null || !_playerMotor.IsForestDefeated);
             if (!available)
             {
                 if (_skipDialog.IsOpen) _skipDialog.SetImmediate(false);
@@ -541,8 +547,17 @@ namespace HamPocha.UI
             if (_skipButton.gameObject.activeSelf != canSkip) _skipButton.gameObject.SetActive(canSkip);
             Rect bounds = HudLayout.ScreenBounds(Screen.safeArea, Screen.width, Screen.height);
             RectTransform skipControl = (RectTransform)_skipButton.transform;
-            Vector2 skipAnchor = new Vector2(bounds.xMax, bounds.center.y);
+            Vector2 skipAnchor = new Vector2(bounds.xMax, bounds.yMax);
             if (skipControl.anchorMax != skipAnchor) skipControl.anchorMin = skipControl.anchorMax = skipAnchor;
+            RectTransform growthControl = _contentUi != null ? _contentUi.TutorialTarget(false) : null;
+            if (growthControl != null)
+            {
+                Vector3 position = skipControl.parent.InverseTransformPoint(growthControl.position);
+                Vector3 anchor = skipControl.parent.InverseTransformPoint(skipControl.position) - (Vector3)skipControl.anchoredPosition;
+                float scale = growthControl.lossyScale.x / skipControl.parent.lossyScale.x;
+                skipControl.anchoredPosition = (Vector2)(position - anchor) - Vector2.right *
+                    (growthControl.rect.width * scale * .5f + skipControl.rect.width * .5f + 12f);
+            }
             if (_skipDialog.IsOpen)
             {
                 HudLayout.FitPanel(_skipDialog, _skipCard, Vector2.one * .5f, new Vector2(64, 64));
@@ -557,17 +572,25 @@ namespace HamPocha.UI
                 return;
             }
 
+            if (WaitForNavigationPanels()) return;
             if (!_hasRegion || _region != _loader.CurrentScene) RefreshRegion();
             if (_interruptNotice != InterruptNotice.None)
             {
                 PresentInterruptNotice();
                 return;
             }
+            InterruptNotice timedNotice = PendingTimedNotice();
+            if (timedNotice != InterruptNotice.None && !_panning &&
+                !(_guide.IsOpen && _next.gameObject.activeSelf))
+            {
+                OpenInterruptNotice(timedNotice);
+                return;
+            }
             if (_openingReminder || (_clock != null && _clock.AtTutorialOpeningDeadline && !State.OpeningReminderSeen))
             {
                 _openingReminder = true;
                 SetExhibit(null);
-                PresentLesson("포차로 돌아가 영업을 시작해 주세요. 영업을 열면 시간이 다시 흘러요.");
+                PresentLesson("포차로 돌아가 영업을 시작해주세요");
                 return;
             }
             if (FirstDayRound > 0)
@@ -578,7 +601,11 @@ namespace HamPocha.UI
             _lessonNotice = false;
             if (!IsIntroducingPocha) SetExhibit(null);
             if (State.Step == 0 && _region == SceneType.Village) MoveTo(1);
-            if ((State.Step == 8 || State.Step == 9) && _region != SceneType.Forest01) MoveTo(7);
+            if ((State.Step == 8 || State.Step == 9) && _region != SceneType.Forest01)
+            {
+                State.ForestRecoveryPending = !State.CompletedFirstGathering;
+                MoveTo(State.CompletedFirstGathering ? 11 : 7);
+            }
             if (State.Step == 0 && _region == SceneType.Home)
             {
                 UpdateHomeLesson();
@@ -651,6 +678,72 @@ namespace HamPocha.UI
             }
         }
 
+        private bool WaitForNavigationPanels()
+        {
+            bool navigation = PendingTimedNotice() != InterruptNotice.None || _openingReminder ||
+                (_clock.AtTutorialOpeningDeadline && !State.OpeningReminderSeen) ||
+                _interruptNotice != InterruptNotice.None;
+            int round = FirstDayRound;
+            if (round > 0)
+            {
+                navigation |= round is 11 or 12 or 13 or 15 or 16 or 17 or 31 or 32 or 33 or
+                    34 or 35 or 36 or 37 or 56 or 98 or 99 or 100;
+                navigation |= round == OpeningWaitRound && _clock.Hour >= WorldClock.OpeningHour;
+                navigation |= round is >= 38 and <= 89 && PochaKitchen.Current?.IsInside == false;
+            }
+            else navigation |= State.Step is 1 or 2 or 3 or 6 or 7 or 10 || IsReturningHomeToSleep;
+
+            // 숲 입장 설명은 확인한 이동 안내에 이어 같은 카드 안에서 진행하는 실습이다.
+            bool forestPractice = (round == 17 && State.FirstDayNoticeConfirmed || round == 0 && State.Step == 7) &&
+                _entryUi.IsTravelCardOpen && _entryUi.IsForestOne && _loader.IsOnlyUiOpen(_entryUi);
+            bool waiting = navigation && (AccountConfirmUi.IsDialogOpen ||
+                !forestPractice && (_loader.IsUiOpen || _loader.IsTravelPromptOpen));
+            if (_waitingForNavigationPanels != waiting)
+            {
+                _waitingForNavigationPanels = waiting;
+                Debug.Log($"[UI] event=tutorial_navigation result={(waiting ? "waiting_for_panels" : "resumed")} round={round}", this);
+            }
+            if (!waiting) return false;
+
+            // 열린 패널이 먼저 입력과 바깥 닫기를 받는다. 확인·회차는 진행시키지 않는다.
+            if (_panRoutine != null) StopCoroutine(_panRoutine);
+            if (_panning) RestoreCamera();
+            _guide.SetImmediate(false);
+            _next.gameObject.SetActive(false);
+            _root.SetActive(false);
+            _quest.SetVisible(false);
+            _loader.SetTutorialMovementBlocked(false);
+            _clock.SetTutorialPaused(false);
+            return true;
+        }
+
+
+        private int TutorialDepartureHour()
+        {
+            if (State == null || State.Step >= 21 || State.VisitedFirstForest ||
+                FirstDayRound <= 0 || FirstDayRound > 20 || _clock.DayNumber != 1 ||
+                SceneLoadManager.IsForest(_loader.CurrentScene)) return 0;
+            if (FirstDayRound <= 12 && _loader.CurrentScene == SceneType.Home) return 7;
+            return 9;
+        }
+
+        private InterruptNotice PendingTimedNotice()
+        {
+            if (State == null || State.Step >= 21 || FirstDayRound <= 0 || _clock.DayNumber != 1)
+                return InterruptNotice.None;
+            int departure = TutorialDepartureHour();
+            if (_clock.AtTutorialDepartureDeadline)
+            {
+                if (departure == 7 && !State.VillageDepartureReminderSeen) return InterruptNotice.VillageDeparture;
+                if (departure == 9 && !State.ForestDepartureReminderSeen) return InterruptNotice.ForestDeparture;
+            }
+            bool away = _loader.CurrentScene == SceneType.Home || SceneLoadManager.IsForest(_loader.CurrentScene);
+            if (away && _session.BusinessSequence == 0 && _clock.Hour >= WorldClock.OpeningHour &&
+                _clock.Hour < WorldClock.SunsetHour && !State.NoonOpeningReminderSeen)
+                return InterruptNotice.NoonOpening;
+            return InterruptNotice.None;
+        }
+
         private bool NeedsTutorialSleepHold()
         {
             TutorialSaveData state = State;
@@ -716,7 +809,15 @@ namespace HamPocha.UI
             _portalNotice = false;
             _gatherRegion = _region == SceneType.Forest01 ? _loader.CurrentRegion.GetComponent<ForestRegrowth>() : null;
             _forestPreviewShown = false;
-            if (_gatherRegion != null && State.Step <= 9)
+            if (State.NeedsFirstGathering && State.HasStartedFirstGathering && _region != SceneType.Forest01)
+            {
+                State.VisitedFirstForest = true;
+                State.ForestRecoveryPending = true;
+            }
+            if (State.ForestRecoveryPending && FirstDayRound == 16) State.FirstDayNoticeConfirmed = false;
+            if (_gatherRegion != null && State.Step <= 9 &&
+                (State.HarvestGoals == null || State.HarvestGoals.Length != Inventory.IngredientCount ||
+                 System.Array.TrueForAll(State.HarvestGoals, count => count == 0)))
             {
                 State.HarvestGoals = new int[Inventory.IngredientCount];
                 for (int i = 0; i < Inventory.IngredientCount; i++) State.HarvestGoals[i] = _gatherRegion.GetHarvestYield((IngredientType)i, false);
@@ -732,6 +833,7 @@ namespace HamPocha.UI
 
         private void PresentLesson(string copy, Transform exhibit = null, Camera camera = null)
         {
+            if (WaitForNavigationPanels()) return;
             SetExhibit(exhibit, camera);
             _root.SetActive(true);
             _guide.SetVisible(true);
@@ -1044,6 +1146,12 @@ namespace HamPocha.UI
         internal bool BlockTravel(SceneType destination)
         {
             if (_root == null || State == null || _loader.CurrentScene == destination) return false;
+            if (SceneLoadManager.IsForest(destination) && _station.SummaryPending) return true;
+            if (IsReturningHomeToSleep && _loader.CurrentScene == SceneType.Home)
+            {
+                OpenInterruptNotice(InterruptNotice.SleepReturn);
+                return true;
+            }
             if (_loader.CurrentScene == SceneType.Village && destination == SceneType.Home && RequiresFirstForestTravel)
             {
                 OpenInterruptNotice(InterruptNotice.ForestTravel);
@@ -1056,6 +1164,13 @@ namespace HamPocha.UI
                 return true;
             }
             if (FirstDayRound > 0) return BlockFirstDayTravel(destination);
+            if (SceneLoadManager.IsForest(destination) &&
+                (State.Step < 7 || State.Step >= 10 && State.Step < 20 ||
+                 State.NeedsFirstGathering && destination != SceneType.Forest01))
+            {
+                OpenInterruptNotice(State.Step < 10 ? InterruptNotice.ForestTravel : InterruptNotice.MarketTravel);
+                return true;
+            }
             bool gathering = _loader.CurrentScene == SceneType.Forest01 && State.Step >= 7 && State.Step <= 9 && !HarvestComplete();
             bool goingToMarket = _loader.CurrentScene == SceneType.Village && SceneLoadManager.IsForest(destination) &&
                 State.Step >= 1 && State.Step <= 5;
@@ -1070,6 +1185,11 @@ namespace HamPocha.UI
         internal bool BlockPochaEntrance()
         {
             if (!IsRunning || _loader.CurrentScene != SceneType.Village) return false;
+            if (IsReturningHomeToSleep)
+            {
+                OpenInterruptNotice(InterruptNotice.SleepReturn);
+                return true;
+            }
             if (RequiresFirstForestTravel)
             {
                 OpenInterruptNotice(InterruptNotice.ForestTravel);
@@ -1098,7 +1218,7 @@ namespace HamPocha.UI
             _interruptNotice = notice;
             PresentInterruptNotice();
             _guidePageIndex = 0;
-            ShowGuidePage();
+            if (!_waitingForNavigationPanels) ShowGuidePage();
             Debug.Log($"[UI] event=tutorial_interrupt result=shown notice={notice}", this);
         }
 
@@ -1107,6 +1227,9 @@ namespace HamPocha.UI
             string copy;
             switch (_interruptNotice)
             {
+                case InterruptNotice.VillageDeparture: copy = "마을로 먼저 이동해주세요"; break;
+                case InterruptNotice.ForestDeparture: copy = "숲으로 먼저 이동해주세요"; break;
+                case InterruptNotice.NoonOpening: copy = "12시부터 포차 개점이 가능해요!\n포차로 돌아갈 준비를 해주세요"; break;
                 case InterruptNotice.ForestExit: copy = "재료를 모두 모은 뒤에 숲에서 나갈 수 있어요. 남은 재료를 모아 보세요."; break;
                 case InterruptNotice.ForestTravel: copy = ForestTravelCopy; break;
                 case InterruptNotice.MarketTravel: copy = PochaTravelCopy; break;
@@ -1114,6 +1237,14 @@ namespace HamPocha.UI
                 case InterruptNotice.FirstDayClosing: copy = "첫 영업은 자정까지 이어가 보세요!"; break;
                 case InterruptNotice.SleepReturn: copy = HomeTravelCopy; break;
                 default: copy = "자정부터 수면할 수 있어요."; break;
+            }
+            if (_interruptNotice is InterruptNotice.VillageDeparture or InterruptNotice.ForestDeparture or InterruptNotice.NoonOpening)
+            {
+                _worldTarget = null;
+                _uiTarget = null;
+                _firstDayNoticeFocus = null;
+                _firstDaySecond = null;
+                _firstDayWorldGroup = null;
             }
             PresentLesson(copy);
         }
@@ -1210,7 +1341,10 @@ namespace HamPocha.UI
             bool explanation = _guide.IsOpen && _next.gameObject.activeSelf;
             bool outdoorTour = FirstDayRound > 0 ? FirstDayRound >= 90 && FirstDayRound <= 96 :
                 State != null && State.Step == 20 && State.ClosingLesson >= 2 && State.ClosingLesson <= 4;
-            if (_clock != null) _clock.SetTutorialPaused(explanation || GuideInputHandoff || outdoorTour || FirstDayRound > 0 && _panning);
+            bool buttonPractice = FirstDayRound == 89 || FirstDayRound > 0 &&
+                !_firstDayMoves && !_firstDayFree && _uiTarget != null;
+            if (_clock != null) _clock.SetTutorialPaused(explanation || GuideInputHandoff || outdoorTour ||
+                buttonPractice || FirstDayRound > 0 && _panning);
             _restrictInput = restrict;
             UpdateInputMask(FocusedControl(explanation), explanation);
             if (FirstDayRound > 0 && !_loader.NeedsHomeNickname)
@@ -1397,6 +1531,11 @@ namespace HamPocha.UI
             Sfx.Play(SfxCue.MenuClose);
             if (_interruptNotice != InterruptNotice.None)
             {
+                if (_interruptNotice == InterruptNotice.VillageDeparture) State.VillageDepartureReminderSeen = true;
+                if (_interruptNotice == InterruptNotice.ForestDeparture) State.ForestDepartureReminderSeen = true;
+                if (_interruptNotice == InterruptNotice.NoonOpening) State.NoonOpeningReminderSeen = true;
+                if (_interruptNotice is InterruptNotice.VillageDeparture or InterruptNotice.ForestDeparture or InterruptNotice.NoonOpening)
+                    SaveProgress();
                 Debug.Log($"[UI] event=tutorial_interrupt result=confirmed notice={_interruptNotice}", this);
                 _interruptNotice = InterruptNotice.None;
                 _lessonNotice = false;
@@ -1523,6 +1662,7 @@ namespace HamPocha.UI
         private void MoveTo(int step)
         {
             int previous = State.Step;
+            if (step == 10) State.CompletedFirstGathering = true;
             State.Step = step;
             State.NoticeClosed = false;
             State.NoticeStep = step;
@@ -1551,7 +1691,7 @@ namespace HamPocha.UI
                 center += Vector3.ProjectOnPlane(_camera.transform.forward, Vector3.up).normalized * 4.5f;
             }
             center.y = _loader.PlayerBody.position.y;
-            Pan(center, next, village ? VillageOverviewScale : Mathf.Max(2.25f, _forestOverviewScale), ground, village ? VillagePanBow : 0f);
+            Pan(center, next, village ? VillageOverviewScale : _marketOverviewScale, ground, village ? VillagePanBow : 0f);
         }
 
         private void Pan(Vector3 target, int next, float overviewScale = 1f, BoxCollider ground = null, float bow = 0f)
@@ -1575,7 +1715,6 @@ namespace HamPocha.UI
             _panFrom = _camera.transform.position;
             _panTo = _panFrom + target - (ground != null ? GroundViewCenter(_camera, target.y) : _loader.PlayerBody.position);
             _panBow = _camera.transform.right * bow;
-            if (ground != null && _panBow == Vector3.zero) LimitForestOverviewZoom();
             _hasPanMarketBounds = false;
             if (_panBow != Vector3.zero && _market != null)
             {
@@ -1646,21 +1785,6 @@ namespace HamPocha.UI
             float x = (inner.x - Mathf.Abs(center.x)) / Mathf.Max(.0001f, Mathf.Abs(right.x) + Mathf.Abs(up.x));
             float z = (inner.z - Mathf.Abs(center.z)) / Mathf.Max(.0001f, Mathf.Abs(right.z) + Mathf.Abs(up.z));
             return Mathf.Min(x, z);
-        }
-
-        private void LimitForestOverviewZoom()
-        {
-            // 경로 전체에서 가능한 확대 폭을 한 번 정해 재생 중 상한에 닿을 때 속도가 꺾이지 않게 한다.
-            float zoom = _panSize - _cameraSize;
-            for (int i = 1; i <= 32; i++)
-            {
-                float t = i / 32f;
-                float travel = 1f - (1f - t) * (1f - t);
-                Vector3 cameraPosition = Vector3.Lerp(_panFrom, _panTo, travel);
-                float limit = MaximumOverviewSizeAt(_camera, _panGround, cameraPosition);
-                zoom = Mathf.Min(zoom, Mathf.Max(0f, limit - _cameraSize) / t);
-            }
-            _panSize = _cameraSize + zoom;
         }
 
         private void KeepMarketAheadOfCamera()
@@ -2101,6 +2225,7 @@ namespace HamPocha.UI
             if (_clock != null)
             {
                 _clock.SetTutorialPaused(false);
+                _clock.SetTutorialDepartureHold(0);
                 _clock.SetTutorialOpeningHold(false);
                 _clock.SetTutorialSleepHold(false);
             }

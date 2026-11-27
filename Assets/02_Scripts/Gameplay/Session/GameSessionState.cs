@@ -199,6 +199,11 @@ namespace HamPocha.Gameplay
             bool isForest = SceneLoadManager.IsForest(region);
 
             CookingStation station = GetComponent<CookingStation>();
+            if (isForest && station != null && station.SummaryPending)
+            {
+                message = "마감 정산을 먼저 확인해주세요";
+                return false;
+            }
             int forestIndex = (int)region - (int)SceneType.Forest01;
             if (isForest && station != null && !station.IsForestOwned(forestIndex))
             {
@@ -206,7 +211,7 @@ namespace HamPocha.Gameplay
                 return false;
             }
 
-            if (isForest && !_fatigue.CanSpend(ExplorationEntryCost))
+            if (isForest && ExplorationCost(region) > 0 && !_fatigue.CanSpend(ExplorationEntryCost))
             {
                 message = "탐험을 시작하려면 피로 10이 필요합니다.";
 
@@ -216,6 +221,22 @@ namespace HamPocha.Gameplay
             message = string.Empty;
 
             return true;
+        }
+
+        public ForestRegrowth TutorialRecoveryForest(SceneType region)
+        {
+            CookingStation station = GetComponent<CookingStation>();
+            TutorialSaveData tutorial = station != null ? station.Progress.Tutorial : null;
+            if (region != SceneType.Forest01 || tutorial == null || !tutorial.NeedsFirstGathering ||
+                !tutorial.HasStartedFirstGathering) return null;
+            foreach (ForestRegrowth forest in FindObjectsOfType<ForestRegrowth>(true))
+                if (forest.GetComponent<SceneRegion>().SceneType == region && forest.CanResumeTutorialVisit) return forest;
+            return null;
+        }
+
+        public int ExplorationCost(SceneType region)
+        {
+            return TutorialRecoveryForest(region) != null ? 0 : ExplorationEntryCost;
         }
 
         public bool TryEnterRegion(SceneType region, out string message)
@@ -236,13 +257,15 @@ namespace HamPocha.Gameplay
                 case SceneType.Forest02:
                 case SceneType.Forest03:
                 case SceneType.Forest04:
-                    // 재입장마다 자원이 복구되므로 숲에 들어갈 때마다 입장 비용을 지불한다.
-                    if (!_fatigue.TrySpend(ExplorationEntryCost, "exploration_entry"))
+                    int cost = ExplorationCost(region);
+                    if (cost > 0 && !_fatigue.TrySpend(cost, "exploration_entry"))
                     {
                         message = "탐험을 시작하려면 피로 10이 필요합니다.";
 
                         return false;
                     }
+
+                    if (cost == 0) Debug.Log("[Gameplay] event=forest_entry result=resumed cost=0 reason=tutorial_recovery", this);
 
                     SetActivity(PlayerActivity.Exploration);
 
